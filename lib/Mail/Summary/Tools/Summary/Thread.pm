@@ -25,7 +25,7 @@ has summary => (
 	isa => "Str",
 	is  => "rw",
 	required => 0,
-	default  => "...",
+	default  => "",
 );
 
 sub from_mailbox_thread {
