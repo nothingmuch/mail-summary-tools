@@ -1,0 +1,13 @@
+[% summary.title %]
+
+[% FOREACH list IN summary.lists %]
+ [% list.title %]
+[% FOREACH thread IN list.threads %]
+  [% thread.subject %] <[% thread.archive_link.message_uri %]>
+    [% IF thread.summary %]
+    [% thread.summary %]
+    [% ELSE %][% FOREACH participant IN thread.extra.participants %]
+    [% participant.name %]
+    [% END %]
+	[% END %]
+[% END %][% END %]
