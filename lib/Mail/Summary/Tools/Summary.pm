@@ -5,7 +5,6 @@ use Moose;
 
 use Mail::Summary::Tools::Summary::List;
 
-use YAML;
 use YAML::Syck;
 
 has title => (
@@ -38,8 +37,18 @@ sub load {
 }
 
 sub save {
-	my ( $self) = @_;
-	return YAML::Dump( $self->to_hash ),
+	my ( $self, @args ) = @_;
+
+	# YAML.pm's output is prettier
+
+	require YAML;
+
+	if ( @args ) {
+		my $file = shift @args;
+		return YAML::DumpFile( $file, $self->to_hash );
+	} else {
+		return YAML::Dump( $self->to_hash );
+	}
 }
 
 sub to_hash {
