@@ -25,17 +25,23 @@ has threads => (
 	default    => sub { [ ] },
 );
 
+has extra => (
+	isa => "HashRef",
+	is  => "rw",
+	required => 0,
+);
+
 sub add_threads {
 	my ( $self, @threads ) = @_;
 	push @{ $self->threads }, @threads;
 }
 
 sub load {
-	my ( $class, $hash ) = @_;
+	my ( $class, $hash, %options ) = @_;
 
-	$hash->{threads} = [ map { Mail::Summary::Tools::Summary::Thread->load($_) } @{ $hash->{threads} } ];
+	$hash->{threads} = [ map { Mail::Summary::Tools::Summary::Thread->load($_, %options) } @{ $hash->{threads} } ];
 
-	$class->new( %$hash );
+	$class->new( %{ $options{list} }, %$hash );
 }
 
 sub to_hash {
@@ -45,6 +51,7 @@ sub to_hash {
 		name  => $self->name,
 		title => $self->title,
 		threads => [ map { $_->to_hash } $self->threads ],
+		( $self->extra ? ( extra => $self->extra ) : () ),
 	};
 }
 

@@ -68,7 +68,7 @@ sub from_mailbox_thread {
 }
 
 sub load {
-	my ( $class, $hash ) = @_;
+	my ( $class, $hash, %options ) = @_;
 
 	my @good_keys = qw/summary message_id subject/;
 
@@ -78,6 +78,7 @@ sub load {
 	@good_values{@good_keys} = delete @hash{@good_keys};
 
 	$class->new(
+		%{ $options{thread} },
 		%good_values,
 		extra => \%hash,
 	);

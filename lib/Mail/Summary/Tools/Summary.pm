@@ -20,20 +20,27 @@ has lists => (
 	default    => sub { [ ] },
 );
 
+has extra => (
+	isa => "HashRef",
+	is  => "rw",
+	required => 0,
+);
+
 sub add_lists {
 	my ( $self, @lists ) = @_;
 	push @{ $self->lists }, @lists;
 }
 
 sub load {
-	my ( $class, $thing ) = @_;
-	warn "$thing";
+	my ( $class, $thing, %options ) = @_;
+
+	$options{$_} ||= {} for qw/summary list thread/;
+
 	my $hash = ref($thing) ? $thing : YAML::Syck::LoadFile($thing);
-	warn "$hash";
 
-	$hash->{lists} = [ map { Mail::Summary::Tools::Summary::List->load( $_ ) } @{ $hash->{lists} } ];
+	$hash->{lists} = [ map { Mail::Summary::Tools::Summary::List->load( $_, %options ) } @{ $hash->{lists} } ];
 
-	$class->new( %$hash );
+	$class->new( %{ $options{summary} }, %$hash );
 }
 
 sub save {
@@ -57,6 +64,7 @@ sub to_hash {
 	return {
 		title => $self->title,
 		lists => [ map { $_->to_hash } $self->lists ],
+		( $self->extra ? (extra => $self->extra) : () ),
 	};
 }
 
