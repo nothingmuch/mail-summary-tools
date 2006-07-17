@@ -76,7 +76,7 @@ sub really_shorten {
     $service ||= "Metamark";
     eval "require WWW::Shorten::$service";
     no strict 'refs';
-    &{"WWW::Shorten::$service::makeashorterlink"}($uri);
+    &{"WWW::Shorten::${service}::makeashorterlink"}($uri);
 }
 
 sub shortening_enabled {
