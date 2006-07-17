@@ -26,13 +26,13 @@ use Text::Wrap ();
 # -s f # gives f
 # but I don't know if you want to do that, it might be annoying.
 use constant options => (
-    'shorten:s'       => 'shorten',
-    'input=s'         => 'input',    # required, string
-    'output:s'        => 'output',   # defaults to '-'
-    'archive:s'       => 'archive',  # defaults to 'google'
-    'template:s'      => 'template', # defaults to '', which means __DATA__
-    'columns:i'       => 'columns',  # defaults to 80
-    'wrap_overflow:b' => 'wrap_overflow', # whether or not to force wrapping of overflowing text
+    'shorten:s'     => 'shorten',
+    'input=s'       => 'input',    # required, string
+    'output:s'      => 'output',   # defaults to '-'
+    'archive:s'     => 'archive',  # defaults to 'google'
+    'template:s'    => 'template', # defaults to '', which means __DATA__
+    'columns:i'     => 'columns',  # defaults to 80
+    'wrap_overflow' => 'wrap_overflow', # whether or not to force wrapping of overflowing text
 );
 
 sub wrap {
@@ -73,15 +73,20 @@ sub really_shorten {
     
     my $service = $self->{shorten} || 'Metamark';
     
-    $service ||= "Metamark";
-    eval "require WWW::Shorten::$service";
+	my $mod = "WWW::Shorten::$service";
+	unless ( $mod->can("makeashorterlink") ) {
+		my $file = join("/", split("::", $mod ) ) . ".pm";
+		require $file;
+	}
+
     no strict 'refs';
-    &{"WWW::Shorten::${service}::makeashorterlink"}($uri);
+    my $short = &{"${mod}::makeashorterlink"}( $uri ) || $uri;
+	return $short;
 }
 
 sub shortening_enabled {
     my ( $self, $uri ) = @_;
-    if ( $self->{shorten} or $self->{shorten} eq '' ) { # Getopt will give 0 when unused
+    if ( $self->{shorten} or defined($self->{shorten}) and $self->{shorten} eq '' ) { # Getopt will give 0 when unused
         return 1;
     } else {
         return;
@@ -120,9 +125,8 @@ sub template_output {
 sub run {
     my ( $self, @args ) = @_;
 
-    $self->load_summary( $self->{summary} );
     my $summary = Mail::Summary::Tools::Summary->load(
-        $self->{input} || die "You must supply a summary YAML file to textify.\n",
+        $self->{input} || die("You must supply a summary YAML file to textify.\n"),
         thread => {
             default_archive => $self->{archive} || "google",
         },

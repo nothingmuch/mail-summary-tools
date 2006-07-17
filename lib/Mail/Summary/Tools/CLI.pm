@@ -6,7 +6,9 @@ use base qw/App::CLI/;
 use strict;
 use warnings;
 
-
+use constant alias => (
+	totext => "ToText",
+);
 
 __PACKAGE__;
 
