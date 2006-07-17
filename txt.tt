@@ -1,4 +1,4 @@
-% USE wrap %][% summary.title %]
+[% USE wrap %][% summary.title %]
 [% FOREACH list IN summary.lists %]
  [% list.title %]
 [% IF list.extra.description %]
