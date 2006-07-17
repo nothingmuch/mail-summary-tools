@@ -4,11 +4,11 @@ package Mail::Summary::Tools::ArchiveLink::Gmane;
 use Moose;
 
 use URI;
-use URI::QueryParam
+use URI::QueryParam;
 
 with "Mail::Summary::Tools::ArchiveLink";
 
-sub message_link {
+sub message_uri {
 	my $self = shift;
 
 	my $uri = URI->new( 'http://mid.gmane.org/' );
@@ -17,7 +17,7 @@ sub message_link {
 	return $uri;
 }
 
-sub thread_link {
+sub thread_uri {
 	my $self = shift;
 
 	my $uri = URI->new( 'http://news.gmane.org/find-root.php' );
