@@ -1,0 +1,11 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Mail::Summary::Tools::CLI;
+
+Mail::Summary::Tools::CLI->dispatch;
+
+
+
