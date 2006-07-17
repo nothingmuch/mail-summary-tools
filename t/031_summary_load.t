@@ -12,7 +12,7 @@ use ok "Mail::Summary::Tools::Summary";
 
 my $file = File::Spec->catfile( $Bin, "data", "summary.yaml" );
 
-my $summary = Mail::Summary::Tools::Summary->load( $file );
+my $summary = Mail::Summary::Tools::Summary->load( $file, thread => { default_archive => "moose" } );
 
 isa_ok( $summary, "Mail::Summary::Tools::Summary" );
 
@@ -32,3 +32,6 @@ ok( $thread->extra, "extra keys were found" );
 is_deeply( [ keys %{ $thread->extra } ], [ "participants" ], "participants in extra" );
 is( ref( $thread->extra->{participants} ), "ARRAY", "participants is an array" );
 
+is( $thread->default_archive, "moose", "default options provided to constructors" );
+
+ok( $summary->extra, "summary contains extra data" );
