@@ -3,6 +3,8 @@
 package Mail::Summary::Tools::Summary::Thread;
 use Moose;
 
+use Mail::Summary::Tools::ArchiveLink::Easy;
+
 has subject => (
 	isa => "Str",
 	is  => "rw",
@@ -26,6 +28,19 @@ has summary => (
 	is  => "rw",
 	required => 0,
 	default  => "",
+);
+
+has default_archive => (
+	isa => "Str",
+	is  => "rw",
+	default => "google",
+);
+
+has archive_link => (
+	isa  => "Mail::Summary::Tools::ArchiveLink",
+	is   => "rw",
+	lazy => 1,
+	default => sub { $_[0]->make_archive_link },
 );
 
 sub from_mailbox_thread {
@@ -77,6 +92,13 @@ sub to_hash {
 		summary    => $self->summary,
 		($self->extra ? %{ $self->extra } : ()),
 	};
+}
+
+sub make_archive_link {
+	my $self = shift;
+
+	my $constructor = $self->default_archive;
+	Mail::Summary::Tools::ArchiveLink::Easy->$constructor( $self->message_id );
 }
 
 __PACKAGE__;
