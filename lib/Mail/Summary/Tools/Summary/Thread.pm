@@ -39,14 +39,16 @@ sub from_mailbox_thread {
 
 	my %seen_email;
 	my @participants =
-		map { { name => $_->name, email => $_->address } }
-		grep { $seen_email{$_->address} }
+		map { { ( defined($_->name) ? (name => $_->name ) : () ), email => $_->address } }
+		grep { !$seen_email{$_->address}++ }
 		map { $_->from } @messages;
 
 	$class->new(
 		subject    => $subject,
 		message_id => $root->messageId,
-		participants => \@participants,
+		extra      => {
+			participants => \@participants,
+		},
 	);
 }
 
