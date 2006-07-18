@@ -32,7 +32,7 @@ __END__
 
 =head1 NAME
 
-Mail::Summary::Tools::ThreadLoader - 
+Mail::Summary::Tools::ThreadLoader - Idiotic wrapper around Mail::Box::manager.
 
 =head1 SYNOPSIS
 
