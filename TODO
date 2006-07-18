@@ -1,0 +1,18 @@
+* help for main command
+
+* better name for main command
+
+* html output
+
+* better filtering for create command
+
+* docs
+
+* tests for CLI stuff
+
+* something to mine all the links out of the body (but not out of signatures)
+
+* something to include the first n lines of the root message (low priority)
+
+* a catalyst based in-the-browser editor (low priority)
+
