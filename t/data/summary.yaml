@@ -10,7 +10,7 @@ lists:
   - name: oink
     threads:
       - message_id: 69d3ac770606131947r55708fc0g139242e5a989ae4e@mail.gmail.com
-        participants:
+        posters:
           - email: user@example.com
             name: User One
           - email: user2@example.com

@@ -48,8 +48,9 @@ my $flat = Mail::Summary::Tools::FlatFile->new( summary => $summary );
 {
 	my $res = $flat->save;
 
+	$res =~ s/^#.*$//mg;
 	like( $res, qr/---/, "contains separators" );
-	is( scalar(grep { length } split /\s*---\s*/, $res ), 3, "three threads" );
+	is( scalar(grep { length } split /\s*\n---\n\s*/, $res ), 3, "three threads" );
 	like( $res, qr/unique1\@example.com/, "refers to message IDs" );
 	like( $res, qr/This is a summary/, "contains summary of second thread" );
 }
@@ -58,7 +59,8 @@ $flat->skip_summarized(1);
 
 {
 	my $res = $flat->save;
-	is( scalar(grep { length } split /\s*---\s*/, $flat->save ), 2, "just two threads" );
+	$res =~ s/^#.*$//mg;
+	is( scalar(grep { length } split /\s*\n---\n\s*/, $res ), 2, "just two threads" );
 	unlike( $res, qr/This is a summary/, "doesn't contain summary" );
 }
 
