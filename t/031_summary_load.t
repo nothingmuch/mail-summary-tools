@@ -29,8 +29,8 @@ like( $thread->summary, qr/cheese/, "the summary is correct" );
 like( $thread->message_id, qr/.+\@[\w\.]+/, "message id looks ok" );
 
 ok( $thread->extra, "extra keys were found" );
-is_deeply( [ keys %{ $thread->extra } ], [ "participants" ], "participants in extra" );
-is( ref( $thread->extra->{participants} ), "ARRAY", "participants is an array" );
+is_deeply( [ keys %{ $thread->extra } ], [ "posters" ], "posters in extra" );
+is( ref( $thread->extra->{posters} ), "ARRAY", "posters is an array" );
 
 is( $thread->default_archive, "moose", "default options provided to constructors" );
 

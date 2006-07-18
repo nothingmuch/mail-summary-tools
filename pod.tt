@@ -7,7 +7,7 @@
 =head3 L<[% thread.subject %]|[% thread.make_archive_link.message_uri %]>
 [% IF thread.summary %]
 [% thread.summary %]
-[% ELSE %][% FOREACH participant IN thread.extra.participants %]
+[% ELSE %][% FOREACH participant IN thread.extra.posters %]
 [% participant.name %]
 [% END %][% END %][% END %][% END %]
 =head1 See Also

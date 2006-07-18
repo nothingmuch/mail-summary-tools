@@ -18,7 +18,7 @@ my $summary = Mail::Summary::Tools::Summary->new(
 					message_id => 'unique1@example.com',
 					subject => "Moose droppings",
 					extra => {
-						participants => [ { name => "User 1", email => 'foo@example.com' } ],
+						posters => [ { name => "User 1", email => 'foo@example.com' } ],
 					},
 					default_archive => "gmane",
 				),

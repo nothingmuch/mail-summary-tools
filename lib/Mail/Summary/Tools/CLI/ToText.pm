@@ -26,13 +26,14 @@ use Text::Wrap ();
 # -s f # gives f
 # but I don't know if you want to do that, it might be annoying.
 use constant options => (
-    'shorten:s'     => 'shorten',
-    'input=s'       => 'input',    # required, string
-    'output:s'      => 'output',   # defaults to '-'
-    'archive:s'     => 'archive',  # defaults to 'google'
-    'template:s'    => 'template', # defaults to '', which means __DATA__
-    'columns:i'     => 'columns',  # defaults to 80
-    'wrap_overflow' => 'wrap_overflow', # whether or not to force wrapping of overflowing text
+	'v|verbose'       => "verbose",
+    's|shorten:s'     => 'shorten',
+    'i|input=s'       => 'input',    # required, string
+    'o|output:s'      => 'output',   # defaults to '-'
+    'a|archive:s'     => 'archive',  # defaults to 'google'
+    't|template:s'    => 'template', # defaults to '', which means __DATA__
+    'c|columns:i'     => 'columns',  # defaults to 80
+    'w|wrap_overflow' => 'wrap_overflow', # whether or not to force wrapping of overflowing text
 );
 
 sub wrap {
@@ -124,6 +125,7 @@ sub template_output {
 
 sub run {
     my ( $self, @args ) = @_;
+	@args and $self->{$_} = shift @args for qw/input output/;
 
     my $summary = Mail::Summary::Tools::Summary->load(
         $self->{input} || die("You must supply a summary YAML file to textify.\n"),
@@ -154,23 +156,20 @@ __PACKAGE__;
 
 =pod
 
-=head1 NAME
-
-Mail::Summary::Tools::CLI::ToText - 
-
-=head1 SYNOPSIS
+=head1 USAGE
 
 	totext --shorten --input summary.yaml
 
 =head1 OPTIONS
 
-	--input                     Which summary to process
+	--verbose                   Not yet implemented.
+	--input=FILE.yml            Which summary to process
 	--output                    Where to output. Defaults to '-', which is stdout.
 	--archive=SERVICE           Which archival service to link to. "google" or "gmane".
 	--shorten[=SERVICE]         Shorten long URIs in the text output. You can
 	                            specify a WWW::Shorten service.
 	--template=FILE             Use this template instead of the deafult one 
-	--columns=NCOLS             For text wrapping.
+	--columns=NCOLS             For text wrapping. Defaults to 80.
 	--wrap_overflow             Whether or not to force wrapping of overflowing text.
 
 =cut
@@ -185,7 +184,7 @@ __DATA__
 [% head = BLOCK %][% thread.subject %] <[% shorten(thread.archive_link.thread_uri) %]>[% END %][% wrap(head) %]
 
 [% IF thread.summary %][% wrap(thread.summary) %]
-[% ELSE %]    Participants:[% FOREACH participant IN thread.extra.participants %]
+[% ELSE %]    Posters:[% FOREACH participant IN thread.extra.posters %]
     - [% participant.name %][% END %]
 [% END %][% END %][% END %]
 [% IF summary.extra.see_also %]

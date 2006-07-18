@@ -53,7 +53,7 @@ sub from_mailbox_thread {
 	my $subject = $root->subject;
 
 	my %seen_email;
-	my @participants =
+	my @posters =
 		map { { ( defined($_->name) ? (name => $_->name ) : () ), email => $_->address } }
 		grep { !$seen_email{$_->address}++ }
 		map { $_->from } @messages;
@@ -62,7 +62,7 @@ sub from_mailbox_thread {
 		subject    => $subject,
 		message_id => $root->messageId,
 		extra      => {
-			participants => \@participants,
+			posters => \@posters,
 		},
 	);
 }

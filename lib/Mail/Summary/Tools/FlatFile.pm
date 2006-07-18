@@ -30,6 +30,18 @@ has skip_summarized => (
 	default => 0,
 );
 
+has list_posters => (
+	isa => "Bool",
+	is  => "rw",
+	default => 0,
+);
+
+has add_links => (
+	isa => "Bool",
+	is  => "rw",
+	default => 0,
+);
+
 sub save {
 	my ( $self, $file ) = @_;
 
@@ -50,7 +62,7 @@ sub load {
 	# filter out comments
 	$text =~ s/^#.*$//mg;
 
-	foreach my $thread ( grep { length($_) } split /\s*---\n\n\s*/, $text ) {
+	foreach my $thread ( grep { length($_) } split /\s*\n---\n\s*/, $text ) {
 		$self->load_thread( $thread );
 	}	
 }
@@ -74,12 +86,24 @@ sub compute_message_id_index {
 
 sub emit_summary {
 	my ( $self, $summary ) = @_;
-	join("\n", map { $self->emit_list($_) } $summary->lists );
+	return <<'PRE' . join("\n", map { $self->emit_list($_) } $summary->lists );
+# Threads are separated with the sequence "\n---\n"
+# The first line of the thread is the message ID.
+# everything from the message ID to the next empty line is
+# ignored. Everything up to the next separator is the summary,
+# which should be written in the Markdown markup language.
+
+# the -s option skips entries that have already been summarized
+# the -l option creates links to threads (-a gmane, -a google to set archive)
+# the -p option lists all the posters in the thread
+
+---
+PRE
 }
 
 sub emit_list {
 	my ( $self, $list ) = @_;
-	join("", map { "$_\n---\n\n" } map { $self->emit_thread($_) } $list->threads );
+	join("", map { "$_\n\n---\n" } map { $self->emit_thread($_) } $list->threads );
 }
 
 sub emit_thread {
@@ -107,13 +131,13 @@ sub emit_head {
 	my $uri_type = $self->uri_type;
 
 	my @lines = (
-		sprintf("Subject: %s", $thread->subject),
-		sprintf("<%s>", $thread->archive_link->$uri_type || "couldn't find link"),
+		$thread->subject,
+		( $self->add_links ? sprintf("<%s>", $thread->archive_link->$uri_type || "couldn't find link") : () ),
 	);
 
-	if ( my $extra = $thread->extra ) {
-		if ( my $participants = $extra->{participants} ) {
-			push @lines, map { $_->{name} } @$participants;
+	if ( $self->list_posters and my $extra = $thread->extra ) {
+		if ( my $posters = $extra->{posters} ) {
+			push @lines, map { $_->{name} } @$posters;
 		}
 	}
 
