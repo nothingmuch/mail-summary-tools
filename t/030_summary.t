@@ -4,7 +4,6 @@ use strict;
 use warnings;
 
 use Test::More 'no_plan';
-use Test::Exception;
 
 use ok "Mail::Summary::Tools::Summary";
 use ok "Mail::Summary::Tools::Summary::List";
@@ -16,14 +15,7 @@ isa_ok( $s, "Mail::Summary::Tools::Summary" );
 
 is_deeply( [ $s->lists ], [], "no lists yet" );
 
-my $list;
-dies_ok {
-	$list = Mail::Summary::Tools::Summary::List->new();
-} "can't create list without name";
-
-lives_ok {
-	$list = Mail::Summary::Tools::Summary::List->new( name => "awesome list" );
-} "construction with name";
+my $list = Mail::Summary::Tools::Summary::List->new( name => "awesome list" );
 
 isa_ok( $list, "Mail::Summary::Tools::Summary::List" );
 

@@ -44,26 +44,30 @@ has archive_link => (
 );
 
 sub from_mailbox_thread {
-	my ( $class, $thread ) = @_;
+	my ( $class, $thread, %options ) = @_;
 
 	my @messages = $thread->threadMessages;
 
 	my $root = $messages[0];
 
 	my $subject = $root->subject;
+	$subject = $options{process_subject}->($subject) if $options{process_subject};
 
-	my %seen_email;
-	my @posters =
-		map { { ( defined($_->name) ? (name => $_->name ) : () ), email => $_->address } }
-		grep { !$seen_email{$_->address}++ }
-		map { $_->from } @messages;
+	my %extra;
+
+	if ( $options{collect_posters} ) {
+		my %seen_email;
+		$extra{posters} = [
+			map { { ( defined($_->name) ? (name => $_->name ) : () ), email => $_->address } }
+			grep { !$seen_email{$_->address}++ }
+			map { $_->from } @messages
+		];
+	}
 
 	$class->new(
 		subject    => $subject,
 		message_id => $root->messageId,
-		extra      => {
-			posters => \@posters,
-		},
+		( %extra ? ( extra => \%extra ) : () ),
 	);
 }
 

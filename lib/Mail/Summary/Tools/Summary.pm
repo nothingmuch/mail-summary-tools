@@ -10,7 +10,6 @@ use YAML::Syck;
 has title => (
 	isa => "Str",
 	is  => "rw",
-	default => "Mailing list summary",
 );
 
 has lists => (
@@ -62,9 +61,9 @@ sub to_hash {
 	my $self = shift;
 
 	return {
-		title => $self->title,
-		lists => [ map { $_->to_hash } $self->lists ],
+		( $self->title ? (title => $self->title) : () ),
 		( $self->extra ? (extra => $self->extra) : () ),
+		lists => [ map { $_->to_hash } $self->lists ],
 	};
 }
 

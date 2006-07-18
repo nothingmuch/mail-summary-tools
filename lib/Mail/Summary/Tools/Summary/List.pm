@@ -8,7 +8,7 @@ use Mail::Summary::Tools::Summary::Thread;
 has name => (
 	isa => "Str",
 	is  => "rw",
-	required => 1,
+	required => 0,
 );
 
 has title => (
@@ -48,10 +48,10 @@ sub to_hash {
 	my $self = shift;
 
 	return {
-		name  => $self->name,
-		title => $self->title,
-		threads => [ map { $_->to_hash } $self->threads ],
+		( $self->name  ? ( name  => $self->name ) : () ),,
+		( $self->title ? ( title => $self->title ) : () ),
 		( $self->extra ? ( extra => $self->extra ) : () ),
+		threads => [ map { $_->to_hash } $self->threads ],
 	};
 }
 
