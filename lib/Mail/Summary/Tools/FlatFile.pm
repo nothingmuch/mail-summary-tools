@@ -42,6 +42,18 @@ has add_links => (
 	default => 0,
 );
 
+has list_dates => (
+    isa => "Bool",
+    is  => "rw",
+    default => 0,
+);
+
+has list_misc => (
+    isa => "Bool",
+    is  => "rw",
+    default => 0,
+);
+
 sub save {
 	my ( $self, $file ) = @_;
 
@@ -130,14 +142,24 @@ sub emit_head {
 
 	my $uri_type = $self->uri_type;
 
-	my @lines = (
-		$thread->subject,
-		( $self->add_links ? sprintf("<%s>", $thread->archive_link->$uri_type || "couldn't find link") : () ),
-	);
+	my @lines = ( sprintf "Subject: %s", $thread->subject );
+
+    if ( $self->add_links ) {
+        push @lines, sprintf "<%s>", $thread->archive_link->$uri_type || "couldn't find link";
+    }
+
+	if ( $self->list_dates ) {
+	   push @lines, sprintf "Start date: %s", scalar(localtime($thread->extra->{date_from})) if $thread->extra->{date_from};
+	   push @lines, sprintf "End date: %s",   scalar(localtime($thread->extra->{date_to}))   if $thread->extra->{date_to};
+    }
+    
+    if ( $self->list_misc ) {
+        push @lines, "RT-Ticket: %s", $thread->extra->{rt_ticket} if $thread->extra->{rt_ticket};
+    }
 
 	if ( $self->list_posters and my $extra = $thread->extra ) {
 		if ( my $posters = $extra->{posters} ) {
-			push @lines, map { $_->{name} } @$posters;
+			push @lines, grep { defined } map { $_->{name} } @$posters;
 		}
 	}
 

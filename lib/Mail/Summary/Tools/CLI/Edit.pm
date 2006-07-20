@@ -17,6 +17,7 @@ use constant options => (
 	'p|posters'   => 'posters',
 	's|skip'      => 'skip',
 	'l|links'     => 'links',
+	'd|dates'     => 'dates',
 );
 
 sub run {
@@ -34,6 +35,7 @@ sub run {
 		summary         => $summary,
 		skip_summarized => $self->{skip},
 		list_posters    => $self->{posters},
+		list_dates      => $self->{dates},
 		add_links       => $self->{links} || !!$self->{archive},
 	);
 

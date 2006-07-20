@@ -138,7 +138,7 @@ sub run {
         no warnings 'once';
         local $Text::Wrap::huge = "overflow";
     
-        my $o = Mail::Summary::Tools::Output::TT->new( template_input => 'txt.tt' );
+        my $o = Mail::Summary::Tools::Output::TT->new( template_input => $self->template_input );
     
         $o->process(
             $summary,
@@ -150,7 +150,6 @@ sub run {
         );
     }
 }
-
 
 __PACKAGE__;
 

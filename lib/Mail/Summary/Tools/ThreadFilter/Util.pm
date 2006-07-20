@@ -127,7 +127,11 @@ sub in_date_range ($$) {
 	return sub {
 		my $message = shift;
 		my $date_header = $message->head->get('Date');
-		my $date = DateTime::Format::Mail->new->loose->parse_datetime( $date_header );
+		my $date =
+		     eval { DateTime::Format::Mail->new->loose->parse_datetime( $date_header ) }
+		  || eval { DateTime::Format::DateManip->parse_datetime( $date_header ) };
+
+        die "Error prasing date '$date_header': $@\n" unless defined $date;
 		return $range->includes( $date );
 	}
 }

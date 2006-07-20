@@ -64,6 +64,15 @@ sub from_mailbox_thread {
 		];
 	}
 
+    if ( $options{collect_dates} ) {
+        $extra{date_from} = $thread->startTimeEstimate;
+        $extra{date_to}   = $thread->endTimeEstimate;
+    }
+
+    if ( $options{collect_rt} ) {
+        eval { $extra{rt_ticket} = $thread->message->head->get('RT-Ticket') };
+    }
+
 	$class->new(
 		subject    => $subject,
 		message_id => $root->messageId,

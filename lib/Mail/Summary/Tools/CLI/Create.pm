@@ -30,8 +30,10 @@ use constant options => (
 	'l|list=s'    => "list",
 	's|subject=s' => "subject", # TODO
 	'p|posters'   => "posters",
+	'd|dates'     => "dates",e
 	'm|match=s'   => "match", # TODO
-	'c|clean'   => "clean",
+	'c|clean'     => "clean",
+	'r|rt'        => "rt",
 );
 
 sub load_threads {
@@ -57,9 +59,9 @@ sub construct_date_filter {
 	my $from = DateTime::Format::DateManip->parse_datetime( $self->{from} || return );
 	my $to   = DateTime::Format::DateManip->parse_datetime( $self->{to} || return );
 
-	if ( $from || $to ) {
-		$from ||= DatTime::Infinite::Past->new;
-		$to ||= DatTime::Infinite::Future->new;
+	if ( defined($from) || defined($to) ) {
+		$from = DateTime::Infinite::Past->new   unless defined($from);
+		$to   = DateTime::Infinite::Future->new unless defined($to);
 
 		return $self->comb_filter( in_date_range( $from, $to ) );
 	} else {
@@ -122,10 +124,12 @@ sub run {
 	my $list = Mail::Summary::Tools::Summary::List->new( $self->{list} ? (name => $self->{list}) : () );
 	my $summary = Mail::Summary::Tools::Summary->new( lists => [ $list ] );
 
-	foreach my $thread ( @threads ) {
+	foreach my $thread ( sort { $a->startTimeEstimate <=> $b->startTimeEstimate } @threads ) {
 		my $message = get_root_message($thread);
 		my $summarized_thread = Mail::Summary::Tools::Summary::Thread->from_mailbox_thread( $thread,
 			collect_posters => $self->{posters},
+			collect_dates   => $self->{dates},
+			collect_rt      => $self->{dates},
 			process_subject => sub { $self->clean_subject(shift) },
 		);
 
@@ -157,6 +161,7 @@ __END__
 	--list=name                 Only messages for a mailing list by that name.
 	--subject=PATTERN           Filter by subject
 	--posters                   Extract all posters in a thread
+	--dates                     Extract dates from the thread
 	--match=any|all|root|last	Which messages must match the filters for a
 	                            thread to be included.
 	--clean                     Try to clean the subject line.
