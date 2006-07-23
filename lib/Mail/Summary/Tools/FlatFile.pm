@@ -82,7 +82,7 @@ sub load {
 sub load_thread {
 	my ( $self, $text ) = @_;
 
-	my ( $head, $summary ) = split /\n\n/, $text, 2;
+	my ( $head, $summary ) = split /\n\n\s*/, $text, 2;
 	my ($id) = split /\n/, $head;
 
 	my $thread = $self->message_id_index->{$id}
