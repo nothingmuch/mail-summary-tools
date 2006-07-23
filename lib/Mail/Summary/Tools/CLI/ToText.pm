@@ -39,19 +39,25 @@ use constant options => (
 sub wrap {
     my ( $self, $text, $columns, $first_indent, $rest_indent ) = @_;
 
-    $columns ||= 80;
+    $columns ||= $self->{columns} || 80;
     $first_indent ||= '    ';
     $rest_indent  ||= '    ';
 
     no warnings 'once';
     local $Text::Wrap::huge = $self->_wrap_huge;
-    
-    Text::Wrap::wrap( $text, $self->{columns}, $first_indent, $rest_indent );
+    local $Text::Wrap::columns = $columns;
+
+    Text::Wrap::fill( $first_indent, $rest_indent, $text );
 }
 
 sub bullet {
     my ( $self, $text, $columns ) = @_;
     $self->wrap( $text, $columns, '  * ', '    ' );
+}
+
+sub heading {
+    my ( $self, $text, $columns ) = @_;
+    $self->wrap( $text, $columns, '  ', '  ' );
 }
 
 sub _wrap_huge {
@@ -134,21 +140,17 @@ sub run {
         },
     );
 
-    {
-        no warnings 'once';
-        local $Text::Wrap::huge = "overflow";
-    
-        my $o = Mail::Summary::Tools::Output::TT->new( template_input => $self->template_input );
-    
-        $o->process(
-            $summary,
-            {
-                shorten => sub { $self->shorten(shift) },
-                wrap    => sub { $self->wrap(shift) },
-                bullet  => sub { $self->bullet(shift) },
-            },
-        );
-    }
+	my $o = Mail::Summary::Tools::Output::TT->new( template_input => $self->template_input );
+
+	$o->process(
+		$summary,
+		{
+			shorten => sub { $self->shorten(shift) },
+			wrap    => sub { $self->wrap(shift) },
+			bullet  => sub { $self->bullet(shift) },
+			heading => sub { $self->heading(shift) },
+		},
+	);
 }
 
 __PACKAGE__;
@@ -180,14 +182,13 @@ __DATA__
 [% IF list.extra.description %]
 [% wrap(list.extra.description) %]
 [% END %][% FOREACH thread IN list.threads %]
-[% head = BLOCK %][% thread.subject %] <[% shorten(thread.archive_link.thread_uri) %]>[% END %][% wrap(head) %]
+[% head = BLOCK %][% thread.subject %] <[% shorten(thread.archive_link.thread_uri) %]>[% END %][% heading(head) %]
 
 [% IF thread.summary %][% wrap(thread.summary) %]
 [% ELSE %]    Posters:[% FOREACH participant IN thread.extra.posters %]
     - [% participant.name %][% END %]
 [% END %][% END %][% END %]
 [% IF summary.extra.see_also %]
-
  See Also
 [% FOREACH item IN summary.extra.see_also %]
 [% link = BLOCK %][% item.name %] <[% shorten(item.uri ) %]>[% END %][% bullet(link) %]
