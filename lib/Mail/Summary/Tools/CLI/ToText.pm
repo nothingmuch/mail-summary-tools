@@ -43,13 +43,20 @@ sub wrap {
     $first_indent ||= '    ';
     $rest_indent  ||= '    ';
 
-	$text =~ s/<(\w+:.*?)>/$self->expand_uri($1)/ge;
-
     no warnings 'once';
     local $Text::Wrap::huge = $self->_wrap_huge;
     local $Text::Wrap::columns = $columns;
 
-    Text::Wrap::fill( $first_indent, $rest_indent, $text );
+    Text::Wrap::fill( $first_indent, $rest_indent, $self->process_body($text) );
+}
+
+sub process_body {
+	my ( $self, $text ) = @_;
+
+	$text =~ s/< ( \w+:.*? ) >/$self->expand_uri($1)/xge;
+	$text =~ s/\[  (.*?)  \]\(  (.*?)  \)/"$1 <" . $self->shorten($2) . ">"/xge;
+
+	return $text;
 }
 
 sub bullet {
@@ -214,8 +221,11 @@ __DATA__
 [% ELSE %]    Posters:[% FOREACH participant IN thread.extra.posters %]
     - [% participant.name %][% END %]
 [% END %][% END %][% END %]
-[% IF summary.extra.see_also %]
- See Also
+[% IF summary.extra.footer %][% FOREACH section IN summary.extra.footer %] [% heading(section.title) %]
+
+[% wrap(section.body) %]
+[% END %]
+[% END %][% IF summary.extra.see_also %] See Also
 [% FOREACH item IN summary.extra.see_also %]
 [% link = BLOCK %][% item.name %] <[% shorten(item.uri ) %]>[% END %][% bullet(link) %]
 [% END %]
