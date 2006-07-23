@@ -70,7 +70,7 @@ sub from_mailbox_thread {
     }
 
     if ( $options{collect_rt} ) {
-        eval { $extra{rt_ticket} = $thread->message->head->get('RT-Ticket') };
+        eval { $extra{rt_ticket} = $root->head->get('RT-Ticket')->unfoldedBody };
     }
 
 	$class->new(
