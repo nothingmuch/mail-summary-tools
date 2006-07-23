@@ -154,7 +154,10 @@ sub emit_head {
     }
     
     if ( $self->list_misc ) {
-        push @lines, "RT-Ticket: %s", $thread->extra->{rt_ticket} if $thread->extra->{rt_ticket};
+		if ( my $ticket = $thread->extra->{rt_ticket} ) {
+			#push @lines, sprintf 'RT-Ticket: %s', $ticket;
+			push @lines, sprintf '<rt://%s/%s>', ( $ticket =~ /^(\w+?) \#(\d+)$/ );
+		}
     }
 
 	if ( $self->list_posters and my $extra = $thread->extra ) {
