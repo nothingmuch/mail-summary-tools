@@ -43,6 +43,8 @@ sub wrap {
     $first_indent ||= '    ';
     $rest_indent  ||= '    ';
 
+	$text =~ s/<(\w+:.*?)>/$self->expand_uri($1)/ge;
+
     no warnings 'once';
     local $Text::Wrap::huge = $self->_wrap_huge;
     local $Text::Wrap::columns = $columns;
@@ -72,6 +74,30 @@ sub shorten {
 	   $self->really_shorten( $uri );
 	} else {
 		return $uri;
+	}
+}
+
+sub rt_uri {
+	my ( $self, $rt, $id ) = @_;
+
+	if ( $rt eq "perl" ) {
+		return $self->shorten("http://rt.perl.org/rt3/Ticket/Display.html?id=$id");
+	} else {
+		die "unknown rt installation: $rt";
+	}
+}
+
+sub expand_uri {
+	my ( $self, $uri_text ) = @_;
+
+	my $uri = URI->new($uri_text);
+
+	if ( $uri->scheme eq 'rt' ) {
+		my ( $rt, $id ) = ( $uri->authority, substr($uri->path, 1) );
+	   	my $rt_uri = $self->rt_uri($rt, $id);
+		return "[$rt #$id] <$rt_uri>";
+	} else {
+		return "<$uri>"; # markdown will auto linkfy
 	}
 }
 
