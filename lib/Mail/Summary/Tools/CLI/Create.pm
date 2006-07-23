@@ -30,7 +30,7 @@ use constant options => (
 	'l|list=s'    => "list",
 	's|subject=s' => "subject", # TODO
 	'p|posters'   => "posters",
-	'd|dates'     => "dates",e
+	'd|dates'     => "dates",
 	'm|match=s'   => "match", # TODO
 	'c|clean'     => "clean",
 	'r|rt'        => "rt",
