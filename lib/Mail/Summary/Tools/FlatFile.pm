@@ -108,6 +108,7 @@ sub emit_summary {
 # the -s option skips entries that have already been summarized
 # the -l option creates links to threads (-a gmane, -a google to set archive)
 # the -p option lists all the posters in the thread
+# the -d option emits dates
 
 ---
 PRE
