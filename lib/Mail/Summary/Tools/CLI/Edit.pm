@@ -18,6 +18,7 @@ use constant options => (
 	's|skip'      => 'skip',
 	'l|links'     => 'links',
 	'd|dates'     => 'dates',
+	'm|misc'      => 'misc',
 );
 
 sub run {
@@ -36,6 +37,7 @@ sub run {
 		skip_summarized => $self->{skip},
 		list_posters    => $self->{posters},
 		list_dates      => $self->{dates},
+		list_misc       => $self->{misc},
 		add_links       => $self->{links} || !!$self->{archive},
 	);
 
@@ -61,6 +63,7 @@ __END__
 	--posters                   List all the posters in a thread.
 	--links                     Add links to the default archive.
 	--archive=SERVICE           Which archival service to link to. "google" or "gmane".
+	--misc                      List misc data (e.g. RT tickets)
 
 =cut
 
