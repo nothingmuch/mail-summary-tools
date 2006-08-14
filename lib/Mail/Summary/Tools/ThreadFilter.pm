@@ -33,13 +33,16 @@ __END__
 
 =head1 NAME
 
-Mail::Summary::Tools::ThreadFilter - 
+Mail::Summary::Tools::ThreadFilter - Filter Mail::Box::Thread::Node objects
 
 =head1 SYNOPSIS
 
-	use Mail::Summary::Tools::ThreadFilter;
+	# don't use it directly
 
 =head1 DESCRIPTION
+
+This is just a utility class used by the summary creation code, to limit the
+scope of the summary.
 
 =cut
 

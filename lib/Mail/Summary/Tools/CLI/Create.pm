@@ -196,14 +196,12 @@ __END__
 	--verbose                   Not yet implemented.
 	--input=MAILBOX             Something you can pass to Mail::Box::Manager.
 	--output=FILE.yaml          A yaml file to write to.
-	--from=DATE                 Something that Date::Manip can parse
-	--to=DATE				
+	--update                    Update an existing summary (when the mailbox has new messages)
+	--from=DATE                 Something that Date::Manip can parse ('june 1', etc)
+	--to=DATE                   like --from
 	--list=name                 Only messages for a mailing list by that name.
-	--subject=PATTERN           Filter by subject
 	--posters                   Extract all posters in a thread
 	--dates                     Extract dates from the thread
-	--match=any|all|root|last	Which messages must match the filters for a
-	                            thread to be included.
 	--clean                     Try to clean the subject line.
 
 =head1 DESCRIPTION

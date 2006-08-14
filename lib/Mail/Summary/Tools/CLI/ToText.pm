@@ -225,7 +225,8 @@ __PACKAGE__;
 	--output                    Where to output. Defaults to '-', which is stdout.
 	--archive=SERVICE           Which archival service to link to. "google" or "gmane".
 	--shorten[=SERVICE]         Shorten long URIs in the text output. You can
-	                            specify a WWW::Shorten service.
+	                            specify a WWW::Shorten service. The short form (-s)
+	                            accepts no arguments, and defaults to xrl.us
 	--template=FILE             Use this template instead of the deafult one 
 	--columns=NCOLS             For text wrapping. Defaults to 80.
 	--wrap_overflow             Whether or not to force wrapping of overflowing text.

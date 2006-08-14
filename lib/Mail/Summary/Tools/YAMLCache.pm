@@ -84,7 +84,22 @@ edit/fix.
 
 	use Mail::Summary::Tools::YAMLCache;
 
+	my $cache = Mail::Summary::Tools::YAMLCache->new(
+		file => Path::Class::file("/tmp/foo"),
+	);
+
+	$cache->get("foo:bar");
+
+	$cache->set("foo:bar", "moose");
+
 =head1 DESCRIPTION
+
+This is a hacky implementation of the L<Cache> API, suitable for caching long
+lived values, like shortened links, and links to google group threads (which
+require L<WWW::Mechanize> under normal circumstances).
+
+The main point of this module is to create a file that is easy to
+edit/alter/delete, not to be performant or multiprocess friendly.
 
 =cut
 
