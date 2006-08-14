@@ -1,20 +1,14 @@
-* help for main command
-
-* better name for main command
-
-* html output
+* refactor create and totext into non ::CLI components
 
 * better filtering for create command
 
 * docs
 
-* tests for CLI stuff
-
-* something to mine all the links out of the body (but not out of signatures)
-
-* something to include the first n lines of the root message (low priority)
-
 * a catalyst based in-the-browser editor (low priority)
 
 * http://www.xray.mpe.mpg.de/mailing-lists/ support (downloading, linking)
+
+* the 'scrub' command to auto hide threads, clean subjects, etc
+
+* nntp to multiple mbox mirroring scheme
 
