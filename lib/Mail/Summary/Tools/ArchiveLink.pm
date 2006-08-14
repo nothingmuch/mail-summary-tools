@@ -3,9 +3,11 @@
 package Mail::Summary::Tools::ArchiveLink;
 use Moose::Role;
 
-requires "thread_uri";
+# FIXME Moose 0.12
 
-requires "message_uri";
+#requires "thread_uri";
+
+#requires "message_uri";
 
 __PACKAGE__;
 
