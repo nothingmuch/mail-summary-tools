@@ -23,6 +23,7 @@ has threads => (
 	is  => "rw",
 	auto_deref => 1,
 	default    => sub { [ ] },
+	trigger    => sub { $_[0]->_reindex_message_ids },
 );
 
 has extra => (
@@ -31,8 +32,33 @@ has extra => (
 	required => 0,
 );
 
+has _message_id_index => (
+	isa => "HashRef",
+	is  => "rw",
+	lazy    => 1,
+	default => sub { $_[0]->_reindex_message_ids },
+);
+
+
+sub get_thread_by_id {
+	my ( $self, $message_id ) = @_;
+
+	$self->_message_id_index->{$message_id};
+}
+
+sub _reindex_message_ids {
+	my $self = shift;
+
+	my %index = map { $_->message_id => $_ } $self->threads;
+
+	$self->_message_id_index(\%index);
+	
+	return \%index;
+}
+
 sub add_threads {
 	my ( $self, @threads ) = @_;
+	@{ $self->_message_id_index }{ map { $_->message_id } @threads } = @threads;
 	push @{ $self->threads }, @threads;
 }
 

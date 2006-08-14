@@ -7,7 +7,7 @@ use warnings;
 
 use Sub::Exporter -setup => {
 	exports => [qw/
-		get_root_message
+		get_root_message guess_mailing_list
 		thread_root last_in_thread any_in_thread all_in_thread
 		negate
 		mailing_list_is in_date_range
@@ -105,11 +105,16 @@ sub all_in_thread ($) {
 	}
 }
 
+sub guess_mailing_list ($) {
+	my $message = shift;
+	Mail::ListDetector->new( $message );
+}
+
 sub mailing_list_is ($) {
 	my $matchsub = _munge_list_match(shift);
 	return sub {
 		my $message = shift;
-		my $list = Mail::ListDetector->new( $message );
+		my $list = guess_mailing_list( $message );
 		$list && $matchsub->( $list );
 	}
 }

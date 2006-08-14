@@ -9,13 +9,16 @@ use warnings;
 use DateTime::Format::DateManip;
 use DateTime::Infinite;
 
+use Data::Alias;
+
+use Mail::Box::Manager;
+
 use Mail::Summary::Tools::Summary;
 use Mail::Summary::Tools::Summary::List;
 use Mail::Summary::Tools::Summary::Thread;
-use Mail::Summary::Tools::ThreadLoader;
 use Mail::Summary::Tools::ThreadFilter;
 use Mail::Summary::Tools::ThreadFilter::Util qw/
-	get_root_message
+	get_root_message guess_mailing_list
 	thread_root last_in_thread any_in_thread all_in_thread
 	negate
 	mailing_list_is in_date_range
@@ -23,8 +26,9 @@ use Mail::Summary::Tools::ThreadFilter::Util qw/
 
 use constant options => (
 	'v|verbose'   => "verbose",
-	'i|input=s'   => "input",
-	'o|output=s'  => "input",
+	'i|input=s@'  => "input",
+	'o|output=s'  => "output",
+	'u|update'    => "update",
 	'f|from=s'    => "from",
 	't|to=s'      => "to",
 	'l|list=s'    => "list",
@@ -35,13 +39,6 @@ use constant options => (
 	'c|clean'     => "clean",
 	'r|rt'        => "rt",
 );
-
-sub load_threads {
-	my ( $self, $folder ) = @_;
-
-	my $thr = Mail::Summary::Tools::ThreadLoader->new;
-	return $thr->threads( folder => $folder );
-}
 
 sub construct_filters {
 	my $self = shift;
@@ -89,13 +86,13 @@ sub comb_filter {
 }
 
 sub filter {
-	my ( $self, $threads ) = @_;
+	my ( $self, @params ) = @_;
 
 	my $f = Mail::Summary::Tools::ThreadFilter->new(
 		filters => [ $self->construct_filters ],
 	);
 
-	return $f->filter( $threads );
+	return $f->filter(@params);
 }
 
 sub clean_subject {
@@ -103,29 +100,57 @@ sub clean_subject {
 
 	return $subject unless $self->{clean};
 
-
 	$subject =~ s/^\s*(?:Re|Fwd):\s*//i;
 	$subject =~ s/^\s*\[[\w-]+\]\s*//; # remove [Listname] munging
+	$subject =~ s/^\s*|\s*$//g; # strip whitespace
 
 	return $subject;
 }
 
 sub run {
 	my ( $self, @args ) = @_;
-	@args and $self->{$_} = shift @args for qw/output input/;
+	@args and $self->{$_} ||= shift @args for qw/output/;
+	push @{ $self->{input} }, @args;
 
-	my $folder      = $self->{input}  || die "Must provide a mail box for input\n";
-	my $summary_out = $self->{output} || die "Must provide output yaml file for output\n";
+	my @folders     = @{ $self->{input} } or die "Must provide at least one mail box for input\n";
+	my $summary_out = $self->{output}     or die "Must provide output yaml file for output\n";
 
-	my $threads = $self->load_threads( $folder );
+	if ( -f $summary_out and !$self->{update} ) {
+		die "The output file '$summary_out' exists. Either remove it or specify the --update option\n";
+	}
+	
+	my $summary = -f $summary_out
+		? Mail::Summary::Tools::Summary->load( $summary_out )
+		: Mail::Summary::Tools::Summary->new;
 
-	my @threads = $self->filter( $threads );
+	$self->diag("loading and threading mailboxes: @folders");
 
-	my $list = Mail::Summary::Tools::Summary::List->new( $self->{list} ? (name => $self->{list}) : () );
-	my $summary = Mail::Summary::Tools::Summary->new( lists => [ $list ] );
+	my $mgr = Mail::Box::Manager->new;
+	my $threads = $mgr->threads(
+		folders  => [ map { $mgr->open( folder => $_ ) } @folders ],
+		timespan => 'EVER',
+		window   => 'ALL',
+		( $self->{verbose} ? (trace => "PROGRESS") : ()),
+	);
 
-	foreach my $thread ( sort { $a->startTimeEstimate <=> $b->startTimeEstimate } @threads ) {
-		my $message = get_root_message($thread);
+	my %lists = map { $_->name => $_ } $summary->lists;
+	my %seen;
+
+	$self->filter( threads => $threads, callback => sub {
+		my $thread = shift;
+		
+		my $root = get_root_message($thread);
+		next if $seen{$root->messageId}++;
+
+		my $list_name = eval { guess_mailing_list($root)->listname };
+
+		alias my $list = $lists{$list_name || "unknown"};
+
+		unless ( $list ) {
+			$list = Mail::Summary::Tools::Summary::List->new( $list_name ? (name => $list_name) : () );
+			$summary->add_lists( $list );
+		}
+
 		my $summarized_thread = Mail::Summary::Tools::Summary::Thread->from_mailbox_thread( $thread,
 			collect_posters => $self->{posters},
 			collect_dates   => $self->{dates},
@@ -135,10 +160,26 @@ sub run {
 
 		#$summarized_thread->extra->{ .... } = { ... }
 
-		$list->add_threads( $summarized_thread );
-	}
+		if ( my $existing = $summary->get_thread_by_id( $summarized_thread->message_id ) ) {
+			my $was_out_of_date = $existing->extra->{out_of_date};
+			$existing->merge( $summarized_thread );
+			$self->diag($summarized_thread->message_id . " is now out of date") if !$was_out_of_date and $existing->extra->{out_of_date};
+		} else {
+			$list->add_threads( $summarized_thread );
+		}
+	});
+
+	$self->diag( "found threads in the mailing lists: @{[ map { $_->name } values %lists ]}" );
 
 	$summary->save( $summary_out );
+}
+
+sub diag {
+	my ( $self, @message ) = @_;
+	return unless $self->{verbose};
+	my $message = "@message";
+	chomp $message;
+	warn "$message\n";
 }
 
 __PACKAGE__;

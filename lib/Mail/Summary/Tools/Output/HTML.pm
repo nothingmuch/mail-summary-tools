@@ -7,6 +7,7 @@ use utf8;
 
 use Mail::Summary::Tools::Output::TT;
 use Text::Markdown ();
+use HTML::Entities;
 
 has summary => (
 	isa => "Mail::Summary::Tools::Summary",
@@ -47,10 +48,9 @@ has template_obj => (
 sub process {
 	my $self = shift;
 
-	print $self->template_snippet(
+	$self->template_snippet(
 		$self->main_template,
 		html => $self,
-		markdown => sub { $self->markdown(@_) },
 	);
 }
 
@@ -76,9 +76,14 @@ sub template_snippet {
 sub markdown {
 	my ( $self, $text ) = @_;
 
-	$text =~ s/<(\w+:.*?)>/$self->expand_uri($1)/ge;
+	$text =~ s/<((?:msgid|rt):\S+?)>/$self->expand_uri($1)/ge;
+	$text =~ s/\[(.*?)\]\(((?:msgid|rt):\S+?)\)/$self->expand_uri($2, $1)/ge;
 
-	Text::Markdown::markdown($text);
+	# non ascii stuff gets escaped (accents, etc), but not punctuation, which
+	# markdown will handle for us.
+	$text = $self->escape_html($text, '^\p{IsASCII}');
+
+	Text::Markdown::markdown( $text );
 }
 
 sub rt_uri {
@@ -92,31 +97,94 @@ sub rt_uri {
 }
 
 sub link_to_message {
-	my ( $self, $message_id ) = @_;
+	my ( $self, $message_id, $text ) = @_;
 
-	# FIXME
-	# hidden threads, etc
+	my $thread = $self->summary->get_thread_by_id( $message_id ) || die "$message_id is not in summary";
 
-	require Mail::Summary::Tools::ArchiveLink::GoogleGroups;
-	my $uri = Mail::Summary::Tools::ArchiveLink::GoogleGroups->new( message_id => $message_id )->thread_uri;
+	my $uri;
+	
+	if ( $thread->hidden ) {
+		$uri = $thread->archive_link->thread_uri;
+	} else {
+		$uri = URI->new;
+		$uri->fragment($message_id);
+	}
 
-	"[another thread]($uri)"
+	$text ||= $thread->subject;
+
+	"[$text]($uri)";
 }
 
 sub expand_uri {
-	my ( $self, $uri_text ) = @_;
+	my ( $self, $uri_string, $text ) = @_;
 
-	my $uri = URI->new($uri_text);
+	my $uri = URI->new($uri_string);
 
 	if ( $uri->scheme eq 'rt' ) {
 		my ( $rt, $id ) = ( $uri->authority, substr($uri->path, 1) );
 	   	my $rt_uri = $self->rt_uri($rt, $id);
-		return "[[$rt #$id]]($rt_uri)";
+		$text ||= "[$rt #$id]";
+		return "[$text]($rt_uri)";
 	} elsif ( $uri->scheme eq 'msgid' ) {
-		return $self->link_to_message( join("", grep { defined } $uri->authority, $uri->path) );
+		return $self->link_to_message( join("", grep { defined } $uri->authority, $uri->path), $text );
 	} else {
-		return "<$uri>"; # markdown will auto linkfy
+		die "unknown uri scheme: $uri";
 	}
+}
+
+sub escape_html {
+	my ( $self, $text, @extra ) = @_;
+	HTML::Entities::encode_entities($text, @extra);
+}	
+
+has h1_tag => (
+	isa => "ArrayRef",
+	is  => "rw",
+	auto_deref => 1,
+	default => ["h1"],
+);
+
+sub wrap_tags {
+	my ( $self, $tags, @text ) = @_;
+
+	if ( @$tags ) {
+		my ( $outer, @inner ) = @$tags;
+		return "<$outer>" . $self->wrap_tags( \@inner, @text ) . "</$outer>";
+	} else {
+		return "@text";
+	}
+}
+
+sub h1 {
+	my ( $self, @inner ) = @_;
+	my $tag = $self->h1_tag;
+	$self->wrap_tags( $tag, @inner );
+}
+
+has h2_tag => (
+	isa => "ArrayRef",
+	is  => "rw",
+	auto_deref => 1,
+	default => ["h2"],
+);
+
+sub h2 {
+	my ( $self, @inner ) = @_;
+	my $tag = $self->h2_tag;
+	$self->wrap_tags( $tag, @inner );
+}
+
+has h3_tag => (
+	isa => "ArrayRef",
+	is  => "rw",
+	auto_deref => 1,
+	default => ["h3"],
+);
+
+sub h3 {
+	my ( $self, @inner ) = @_;
+	my $tag = $self->h3_tag;
+	$self->wrap_tags( $tag, @inner );
 }
 
 sub toc {
@@ -127,37 +195,59 @@ sub toc {
 sub body {
 	my $self = shift;
 
-	return join("\n\n\n",
+	return qq{<div id="summary_container">\n}
+	. join("\n\n\n",
 		$self->header,
 		$self->lists,
 		$self->footer,
-	);
+	)
+	. qq{</div>\n};
 }
 
 sub header {
 	my $self = shift;
-	$self->template_snippet(
-		$self->header_template,
-		title => $self->summary->title,
-	);
+	my @parts;
+	
+	return qq{<div id="summary_header">\n}
+	. join("\n\n",
+		$self->h1( $self->escape_html( $self->summary->title || "Mailing list summary" ) ),
+		$self->custom_header,
+	)
+	. qq{</div>\n};
 }
 
-use constant header_template => <<'TMPL';
-<h1>[% title | html %]</h1>
-TMPL
+sub custom_header {
+	my $self = shift;
+
+	if ( my $header = eval { $self->summary->extra->{header} } ) {
+		return join("\n\n", map { $self->custom_header_section( $_ ) } @$header );
+	} else {
+		return ();
+	}
+}
+
+sub custom_header_section {
+	my ( $self, $section ) = @_;
+	return qq{<div class="header_section">\n}
+	. $self->generic_custom_section( $section )
+	. qq{</div>\n};
+}
 
 sub footer {
 	my $self = shift;
-	return join("\n\n",
+	
+	return qq{<div id="summary_footer">\n}
+	. join("\n\n",
 		$self->custom_footer,
 		$self->see_also,
-	);
+	)
+	. qq{</div>\n};
 }
 
 sub custom_footer {
 	my $self = shift;
 
-	if ( my $footer = $self->summary->extra->{footer} ) {
+	if ( my $footer = eval { $self->summary->extra->{footer} } ) {
 		return join("\n\n", map { $self->custom_footer_section( $_ ) } @$footer );
 	} else {
 		return ();
@@ -166,70 +256,129 @@ sub custom_footer {
 
 sub custom_footer_section {
 	my ( $self, $section ) = @_;
-	$self->template_snippet(
-		$self->custom_footer_section_template,
-		section => $section,
-	);
+	return qq{<div class="footer_section">\n}
+	. $self->generic_custom_section( $section )
+	. qq{</div>\n}
 }
 
-use constant custom_footer_section_template => <<'TMPL';
-<h2>[% section.title | html %]</h2>
+sub generic_custom_section {
+	my ( $self, $section ) = @_;
 
-[% markdown(section.body) %]
-TMPL
+	return join("\n\n",
+		$self->h2( $self->escape_html($section->{title}) ),
+		$self->markdown( $section->{body} ),
+	)
+}
 
 sub see_also {
 	my $self = shift;
 
-	if ( my $see_also = $self->summary->extra->{see_also} ) {
-		$self->template_snippet(
-			$self->see_also_template,
-			items => $see_also,
-		);
+	if ( my $see_also = eval { $self->summary->extra->{see_also} } ) {
+		return qq{<div class="footer_section" id="see_also">\n}
+		. join("\n\n",
+			$self->see_also_heading($see_also),
+			$self->see_also_links($see_also),
+		)
+		. qq{\n</div>\n};
 	} else {
 		return ();
 	}
 }
 
-use constant see_also_template => <<'TMPL';
-<h2>See Also</h2>
+sub see_also_heading {
+	my ( $self, $see_also ) = @_;
+	$self->h2("See Also");
+}	
 
-<ul>
-[% FOREACH item IN items %]<li><a href="[% item.uri | html %]">[% item.name %]</a></li>[% END %]
-</ul>
-TMPL
+sub see_also_links {
+	my ( $self, $see_also ) = @_;	
+
+	join("\n",
+		"<ul>",
+		( map { "<li>".$self->see_also_link($_)."</li>" } @$see_also ),
+		"</ul>",
+	);
+}
+
+sub see_also_link {
+	my ( $self, $item ) = @_;
+	sprintf '<a href="%s">%s</a>', map { $self->escape_html($_) } $item->{uri}, $item->{name};
+}
 
 sub lists {
 	my $self = shift;
-	
-	return join("\n\n\n", map { $self->list($_) } $self->summary->lists );
+
+	return qq{<div id="summary_container_body">\n}
+	. join("\n\n\n", map { $self->list($_) } $self->summary->lists)
+	. qq{</div>\n};
 }
 
 sub list {
 	my ( $self, $list ) = @_;
 
-	return join("\n\n",
+	my $name = $list->name;
+	$name =~ s/[^\w]+/_/g;
+
+	return qq{<div class="summary_list" id="summary_list_$name">\n}
+	. join("\n\n",
 		$self->list_header($list),
 		$self->list_body($list),
 		$self->list_footer($list),
-	);
+	)
+	. qq{</div>\n};
 }
 
 sub list_header {
 	my ( $self, $list ) = @_;
-	$self->template_snippet( $self->list_header_template, list => $list );
+
+	return join("\n\n",
+		$self->list_heading($list),
+		$self->list_description($list),
+	);
 }
 
-use constant list_header_template => <<'TMPL';
-<h2>[% IF list.url %]<a href="[% list.url | html %]">[% END %][% list.title | html %][% IF list.url %]</a>[% END %]</h2>
-[% IF list.extra.description %]
-[% markdown(list.extra.description) %]
-[% END %]
-TMPL
+sub list_heading {
+	my ( $self, $list ) = @_;
+	$self->h2( $self->list_title($list) || return, $self->list_heading_extra );
+}
+
+sub list_heading_extra {
+	my ( $self, $list ) = @_;
+	# e.g. " (perl6-compiler)"... maybe $list->extra->{remark} || $list->name
+	return;
+}
+
+sub list_title {
+	my ( $self, $list ) = @_;
+
+	my $title = $list->title || $list->name || return;
+
+	if ( my $uri = eval { $list->extra->{uri} } ) {
+		return sprintf '<a href="%s">%s</a>', map { $self->escape_html($_) } $uri, $title,
+	} else {
+		return $self->escape_html($title);
+	}
+}
+
+sub list_description {
+	my ( $self, $list ) = @_;
+
+	if ( my $description = eval { $list->extra->{description} } ) {
+		$self->markdown( $description );
+	} else {
+		return;
+	}
+}
 
 sub list_body {
 	my ( $self, $list ) = @_;
-	return join("\n\n", map { $self->thread($_) } $list->threads );
+
+	my $name = $list->name;
+	$name =~ s/[^\w]+/_/g;
+
+	return qq{<div class="summary_list_body" id="summary_list_body_$name">\n}
+	. join("\n\n", map { $self->thread($_) } $list->threads)
+	. qq{</div>\n};
 }
 
 sub list_footer {
@@ -239,42 +388,66 @@ sub list_footer {
 
 sub thread {
 	my ( $self, $thread ) = @_;
-	return join("\n\n",
+
+	return if $thread->hidden;
+
+	return qq{<div class="thread_summary">\n}
+	. join("\n\n",
 		$self->thread_header($thread),
 		$self->thread_body($thread),
 		$self->thread_footer($thread),
-	);
+	)
+	. qq{</div>\n};
 }
 
 sub thread_header {
 	my ( $self, $thread ) = @_;
-	$self->template_snippet( $self->thread_header_template, thread => $thread );
+	$self->h3( $self->thread_link($thread) );
 }
 
-use constant thread_header_template => <<'TMPL';
-<h3><a href="[% thread.archive_link.thread_uri | html %]">[% thread.subject | html %]</a></h3>
-TMPL
+sub thread_link {
+	my ( $self, $thread ) = @_;
+
+	my $uri = $thread->archive_link->thread_uri;
+
+	sprintf '<a href="%s" name="%s">%s</a>', map { $self->escape_html($_) } $uri, $thread->message_id, $thread->subject,
+}
 
 sub thread_body {
 	my ( $self, $thread ) = @_;
-	$self->template_snippet( $self->thread_body_template, thread => $thread );
+
+	if ( my $summary = $thread->summary ) {
+		return qq{<div class="thread_summary_body">\n}
+		. $self->markdown($summary)
+		. qq{</div>\n};
+	} else {
+		return qq{<div class="thread_summary_body empty_thread_summary_body">\n}
+		. $self->thread_body_no_summary($thread)
+		. qq{</div>\n};
+	}
 }
 
-use constant thread_body_template => <<'TMPL';
-[% IF thread.summary %]
-	<p>
-		[% markdown(thread.summary) %]
-	</p>
-[% ELSE %]
-	<p>No summary provided.</p>
-	[% IF thread.extra.posters %]
-		<p>The following people participated in this thread:</p>
-		<ul>
-			[% FOREACH poster IN thread.extra.posters %]<li>[% poster.name | html %]</li>[% END %]
-		</ul>
-	[% END %]
-[% END %]
-TMPL
+sub thread_body_no_summary {
+	my ( $self, $thread ) = @_;
+
+	my $posters = eval { $thread->extra->{posters} };
+
+	join("\n",
+		'<p>No summary provided.</p>',
+		($posters ? $self->thread_posters($posters) : ()),
+	);
+}
+
+sub thread_posters {
+	my ( $self, $posters ) = @_;
+
+	join("\n",
+		"<p>The following people participated in this thread:</p>",
+		"<ul>",
+		( map { "<li>" . $self->escape_html($_->{name} || $_->{email}) . "</li>" } @$posters ),
+		"</ul>",
+	);
+}
 
 sub thread_footer {
 	my ( $self, $thread ) = @_;

@@ -11,18 +11,18 @@ has filters => (
 );
 
 sub filter {
-	my ( $self, $threads ) = @_;
+	my ( $self, %params ) = @_;
 
-	my @matches;
-	thread: foreach my $thread ( $threads->all ) {
+	my $threads = $params{threads}  || die "no threads";;
+	my $cb      = $params{callback} || die "no callback";
+	
+	thread: foreach my $thread ( $threads->sortedAll ) {
 		foreach my $filter ( $self->filters ) {
 			next thread unless $filter->( $thread );
 		}
 
-		push @matches, $thread;
+		$cb->($thread);
 	}
-
-	return @matches;
 }
 
 __PACKAGE__;

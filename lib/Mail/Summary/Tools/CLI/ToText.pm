@@ -11,23 +11,10 @@ use Mail::Summary::Tools::Output::TT;
 
 use Text::Wrap ();
 
-# --shorten=Shorl
-# -s # defaults to xrl.us
-
-# Currently works like this:
-# --sh foo          # to use foo (-s implied)
-# -s                # to shorten with Metamark
-
-# If you were to do:  
-# my $shorten = 'a';
-# GetOptions("shorten:s" => \$shorten);
-# -s   # gives empty string
-#      # gives a
-# -s f # gives f
-# but I don't know if you want to do that, it might be annoying.
 use constant options => (
 	'v|verbose'       => "verbose",
-    's|shorten:s'     => 'shorten',
+    'shorten:s'       => 'shorten',
+    's'               => 'shorten_bool',
     'i|input=s'       => 'input',    # required, string
     'o|output:s'      => 'output',   # defaults to '-'
     'a|archive:s'     => 'archive',  # defaults to 'google'
@@ -47,14 +34,16 @@ sub wrap {
     local $Text::Wrap::huge = $self->_wrap_huge;
     local $Text::Wrap::columns = $columns;
 
+	$text =~ s/\\(\S)/$1/g; # unquotemeta
+
     Text::Wrap::fill( $first_indent, $rest_indent, $self->process_body($text) );
 }
 
 sub process_body {
 	my ( $self, $text ) = @_;
 
-	$text =~ s/< ( \w+:.*? ) >/$self->expand_uri($1)/xge;
-	$text =~ s/\[  (.*?)  \]\(  (.*?)  \)/"$1 <" . $self->shorten($2) . ">"/xge;
+	$text =~ s/<(\w+:\S+?)>/$self->expand_uri($1)/ge;
+	$text =~ s/\[(.*?)\]\((\w+:\S+?)\)/$self->expand_uri($2, $1)/ge;
 
 	return $text;
 }
@@ -78,7 +67,7 @@ sub shorten {
     my ( $self, $uri ) = @_;
 
 	if ( $self->should_shorten($uri) ) {
-	   $self->really_shorten( $uri );
+		$self->really_shorten( $uri );
 	} else {
 		return $uri;
 	}
@@ -94,39 +83,64 @@ sub rt_uri {
 	}
 }
 
-sub expand_uri {
-	my ( $self, $uri_text ) = @_;
+sub link_to_message {
+	my ( $self, $message_id, $text ) = @_;
 
-	my $uri = URI->new($uri_text);
+	my $thread = $self->{__summary}->get_thread_by_id( $message_id ) || die "$message_id is not in summary";
+
+	my $uri = $self->shorten($thread->archive_link->thread_uri);
+	
+	$text ||= $thread->subject;
+
+	"$text <$uri>";
+}
+
+sub expand_uri {
+	my ( $self, $uri_string, $text ) = @_;
+
+	my $uri = URI->new($uri_string);
 
 	if ( $uri->scheme eq 'rt' ) {
 		my ( $rt, $id ) = ( $uri->authority, substr($uri->path, 1) );
 	   	my $rt_uri = $self->rt_uri($rt, $id);
-		return "[$rt #$id] <$rt_uri>";
+		$text ||= "[$rt #$id]";
+		return "$text <$rt_uri>";
+	} elsif ( $uri->scheme eq 'msgid' ) {
+		return $self->link_to_message( join("", grep { defined } $uri->authority, $uri->path), $text );
 	} else {
-		return "<$uri>"; # markdown will auto linkfy
+		my $short_uri = $self->shorten($uri) || $uri;
+		return $text ? "$text <$short_uri>" : "<$short_uri>";
 	}
 }
 
 sub really_shorten {
     my ( $self, $uri ) = @_;
     
-    my $service = $self->{shorten} || 'Metamark';
-    
-	my $mod = "WWW::Shorten::$service";
-	unless ( $mod->can("makeashorterlink") ) {
-		my $file = join("/", split("::", $mod ) ) . ".pm";
-		require $file;
-	}
+    my $service = $self->{shorten};
 
-    no strict 'refs';
-    my $short = &{"${mod}::makeashorterlink"}( $uri ) || $uri;
-	return $short;
+	my $cache = $self->{context}->cache;
+
+	my $cache_key = join(":", "shorten", $service, $uri);
+
+	if ( my $short = $cache->get($cache_key) ) {
+		return $short;
+	} else {
+		my $mod = "WWW::Shorten::$service";
+		unless ( $mod->can("makeashorterlink") ) {
+			my $file = join("/", split("::", $mod ) ) . ".pm";
+			require $file;
+		}
+
+		no strict 'refs';
+		my $short = &{"${mod}::makeashorterlink"}( $uri ) || "$uri";
+		$cache->set( $cache_key, $short );
+		return $short;
+	}
 }
 
 sub shortening_enabled {
     my ( $self, $uri ) = @_;
-    if ( $self->{shorten} or defined($self->{shorten}) and $self->{shorten} eq '' ) { # Getopt will give 0 when unused
+    if ( $self->{shorten} ) {
         return 1;
     } else {
         return;
@@ -145,8 +159,10 @@ sub template_input {
 
     if ( my $file = $self->{template} ) {
         open my $fh, "<", $file or die "Couldn't open template (open($file): $!)\n";
+		binmode $fh, ":utf8";
         return $fh;
     } else {
+		binmode DATA, ":utf8";
         return \*DATA;
     }
 }
@@ -155,28 +171,36 @@ sub template_output {
     my $self = shift;
     
     if ( !$self->{output} or $self->{output} eq '-' ) {
+		binmode STDOUT, ":utf8";
         return \*STDOUT;
     } elsif ( my $file = $self->{output} ) {
         open my $fh, ">", $file or die "Couldn't open output (open($file): $!)\n";
+		binmode $fh, ":utf8";
         return $fh;
     }
 }
 
 sub run {
     my ( $self, @args ) = @_;
-	@args and $self->{$_} = shift @args for qw/input output/;
+	@args and $self->{$_} ||= shift @args for qw/input output/;
+
+	$self->{shorten} ||= "Metamark" if $self->{shorten_bool};
 
     my $summary = Mail::Summary::Tools::Summary->load(
         $self->{input} || die("You must supply a summary YAML file to textify.\n"),
         thread => {
             default_archive => $self->{archive} || "google",
+			archive_link_params => { cache => $self->{context}->cache },
         },
     );
 
-	my $o = Mail::Summary::Tools::Output::TT->new( template_input => $self->template_input );
+	my $o = Mail::Summary::Tools::Output::TT->new(
+		template_input  => $self->template_input,
+		template_output => $self->template_output,
+	);
 
 	$o->process(
-		$summary,
+		$self->{__summary} = $summary, # FIXME Output::Plain
 		{
 			shorten => sub { $self->shorten(shift) },
 			wrap    => sub { $self->wrap(shift) },
@@ -210,11 +234,16 @@ __PACKAGE__;
 
 __DATA__
 [% summary.title %]
-[% FOREACH list IN summary.lists %]
+
+[% IF summary.extra.header %][% FOREACH section IN summary.extra.header %] [% heading(section.title) %]
+
+[% wrap(section.body) %]
+[% END %]
+[% END %][% FOREACH list IN summary.lists %]
  [% list.title %]
 [% IF list.extra.description %]
 [% wrap(list.extra.description) %]
-[% END %][% FOREACH thread IN list.threads %]
+[% END %][% FOREACH thread IN list.threads %][% IF thread.hidden %][% NEXT %][% END %]
 [% head = BLOCK %][% thread.subject %] <[% shorten(thread.archive_link.thread_uri) %]>[% END %][% heading(head) %]
 
 [% IF thread.summary %][% wrap(thread.summary) %]

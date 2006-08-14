@@ -21,4 +21,11 @@ use ok 'Mail::Summary::Tools::ThreadFilter::Util';
 
 use ok 'Mail::Summary::Tools::Output::TT';
 
+use ok 'Mail::Summary::Tools::Output::HTML';
 
+use ok 'Mail::Summary::Tools::CLI';
+use ok 'Mail::Summary::Tools::CLI::Context';
+use ok 'Mail::Summary::Tools::CLI::Create';
+use ok 'Mail::Summary::Tools::CLI::Edit';
+use ok 'Mail::Summary::Tools::CLI::ToText';
+use ok 'Mail::Summary::Tools::CLI::ToHTML';

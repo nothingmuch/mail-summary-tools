@@ -62,8 +62,13 @@ is( $drool->summary, "Foo", "thread 2 summary" );
 
 is( $nuts->summary, "third", "thread 3 summary" );
 
+is( $nuts->subject, "Moose <censored>", "subject changed" );
+
+isa_ok( $nuts->archive_link, "Mail::Summary::Tools::ArchiveLink::Hardcoded" );
+
 __DATA__
-unique1@example.com
+message_id: unique1@example.com
+
 4Q#$!%!% garbaagae1
 432oiu3hkjahtr
 ignored
@@ -74,19 +79,22 @@ new paragraph
 
 
 double space
+
 ---
 
-unique2@example.com
-Subject: Moose drool
+message_id: unique2@example.com
+subject: Moose drool
+
 <http://news.gmane.org/find-root.php?message_id=%3Cunique2%40example.com%3E>
 
 Foo
 ---
 
+message_id: unique3@example.com
+subject: Moose <censored>
+thread_uri: http://custom/
 
-unique3@example.com
-Subject: Moose nuts
-<http://news.gmane.org/find-root.php?message_id=%3Cunique3%40example.com%3E>
+blah
 
 third
 ---

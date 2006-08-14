@@ -5,7 +5,8 @@ use Moose;
 
 use Mail::Summary::Tools::Summary::List;
 
-use YAML::Syck;
+use YAML::Syck ();
+use Scalar::Util ();
 
 has title => (
 	isa => "Str",
@@ -25,9 +26,33 @@ has extra => (
 	required => 0,
 );
 
+has _message_id_index => (
+	isa => "HashRef",
+	is  => "rw",
+	default => sub { return {} },
+);
+
 sub add_lists {
 	my ( $self, @lists ) = @_;
 	push @{ $self->lists }, @lists;
+}
+
+sub get_thread_by_id {
+	my ( $self, $message_id ) = @_;
+
+	$self->_message_id_index->{$message_id} ||= $self->_get_thread_by_id($message_id);
+}
+
+sub _get_thread_by_id {
+	my ( $self, $message_id ) = @_;
+
+	foreach my $list ( $self->lists ) {
+		if ( my $thread = $list->get_thread_by_id($message_id) ) {
+			return $thread;
+		}
+	}
+
+	return;
 }
 
 sub load {
@@ -35,6 +60,7 @@ sub load {
 
 	$options{$_} ||= {} for qw/summary list thread/;
 
+	local $YAML::Syck::ImplicitUnicode = 1;
 	my $hash = ref($thing) ? $thing : YAML::Syck::LoadFile($thing);
 
 	$hash->{lists} = [ map { Mail::Summary::Tools::Summary::List->load( $_, %options ) } @{ $hash->{lists} } ];
@@ -45,15 +71,20 @@ sub load {
 sub save {
 	my ( $self, @args ) = @_;
 
-	# YAML.pm's output is prettier
+	local $YAML::Syck::ImplicitUnicode = 1;
 
-	require YAML;
+	# YAML.pm's output is prettier
+	my ( $dump, $dumpfile ) = eval { require YAML; ( \&YAML::Dump, \&YAML::DumpFile ) };
+	$dump     ||= \&YAML::Syck::Dump;
+	$dumpfile ||= \&YAML::Syck::DumpFile;
 
 	if ( @args ) {
 		my $file = shift @args;
-		return YAML::DumpFile( $file, $self->to_hash );
+		unlink "$file~";
+		rename $file, "$file~";
+		return $dumpfile->( $file, $self->to_hash );
 	} else {
-		return YAML::Dump( $self->to_hash );
+		return $dump->( $self->to_hash );
 	}
 }
 
