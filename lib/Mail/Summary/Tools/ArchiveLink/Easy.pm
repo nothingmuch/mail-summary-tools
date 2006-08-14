@@ -6,15 +6,15 @@ use strict;
 use warnings;
 
 sub google {
-	my ( $class, $msg ) = @_;
+	my ( $class, $msg, @extra ) = @_;
 	require Mail::Summary::Tools::ArchiveLink::GoogleGroups;
-	Mail::Summary::Tools::ArchiveLink::GoogleGroups->new( message_id => $msg );
+	Mail::Summary::Tools::ArchiveLink::GoogleGroups->new( message_id => $msg, @extra );
 }
 
 sub gmane {
-	my ( $class, $msg ) = @_;
+	my ( $class, $msg, @extra ) = @_;
 	require Mail::Summary::Tools::ArchiveLink::Gmane;
-	Mail::Summary::Tools::ArchiveLink::Gmane->new( message_id => $msg );
+	Mail::Summary::Tools::ArchiveLink::Gmane->new( message_id => $msg, @extra );
 }
 
 __PACKAGE__;

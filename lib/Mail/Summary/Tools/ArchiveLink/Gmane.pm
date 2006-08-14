@@ -6,7 +6,7 @@ use Moose;
 use URI;
 use URI::QueryParam;
 
-with "Mail::Summary::Tools::ArchiveLink";
+with "Mail::Summary::Tools::ArchiveLink::Base";
 
 sub message_uri {
 	my $self = shift;

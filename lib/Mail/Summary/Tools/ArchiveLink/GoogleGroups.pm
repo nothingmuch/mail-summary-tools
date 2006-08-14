@@ -3,7 +3,7 @@
 package Mail::Summary::Tools::ArchiveLink::GoogleGroups;
 use Moose;
 
-with "Mail::Summary::Tools::ArchiveLink";
+with "Mail::Summary::Tools::ArchiveLink::Base";
 
 use WWW::Mechanize;
 use URI;
@@ -23,7 +23,7 @@ has thread_uri => (
 	isa => "URI",
 	is  => "ro",
 	lazy => 1,
-	default => sub { $_[0]->_find_uri }
+	default => sub { $_[0]->_thread_uri }
 );
 
 has use_frames => (
@@ -32,29 +32,63 @@ has use_frames => (
 	default => 1,
 );
 
+has cache => (
+	isa => "Object",
+	is  => "rw",
+	required => 0,
+);
+
+sub cache_key {
+	my $self = shift;
+
+	join(":",
+		qw/archive_links google_groups/,
+		$self->message_id,
+	);
+}
+
 sub _munge_thread_uri {
 	my ( $self, $uri ) = @_;
 	$uri =~ s/browse_thread/browse_frm/ if $self->use_frames;
 	return $uri;
 }
 
-sub _find_uri {
+sub _thread_uri {
 	my $self = shift;
 
-	my $m = WWW::Mechanize->new;
-
-	my $uri = $self->message_uri;
-
-	$m->get( $uri, 'user-agent' => "Mozilla" );
-
-	if ( my $link = $m->find_link( url_regex => qr#browse_(?:thread|frm)/thread/# ) )  {
-		my $uri = $link->url_abs;
-		return URI->new( $self->_munge_thread_uri($uri) );
-	}
-
-	return;
+	my $uri = $self->_find_thread_uri || return;
+	
+	URI->new( $self->_munge_thread_uri($uri) );
 }
 
+sub _find_thread_uri {
+	my ( $self, $message_id ) = @_;
+
+	my $cache = $self->cache;
+
+	my $cache_key = $self->cache_key;
+
+	if ( my $uri = $cache && $cache->get($cache_key) ) {
+		return $uri;
+	} else {
+		my $m = WWW::Mechanize->new;
+
+		my $uri = $self->message_uri;
+
+		$m->get( $uri, 'user-agent' => "Mozilla" );
+
+		if ( my $link = $m->find_link( url_regex => qr#browse_(?:thread|frm)/thread/# ) ) {
+			my $uri = $link->url_abs->as_string;
+			$cache && $cache->set( $cache_key, $uri );
+			return $uri
+		}
+	}
+
+	warn "no thread_uri for " . $self->message_id . ", falling back to gmane";
+
+	require Mail::Summary::Tools::ArchiveLink::Easy;
+	return Mail::Summary::Tools::ArchiveLink::Easy->gmane( $self->message_id )->thread_uri;
+}
 
 __PACKAGE__;
 

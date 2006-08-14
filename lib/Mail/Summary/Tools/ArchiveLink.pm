@@ -3,12 +3,6 @@
 package Mail::Summary::Tools::ArchiveLink;
 use Moose::Role;
 
-has message_id => (
-	isa => "Str",
-	is  => "rw",
-	required => 1,
-);
-
 requires "thread_uri";
 
 requires "message_uri";
