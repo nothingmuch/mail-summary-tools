@@ -9,7 +9,6 @@ use warnings;
 use DateTime::Format::DateManip;
 use DateTime::Infinite;
 
-use Data::Alias;
 
 use Mail::Box::Manager;
 
@@ -143,13 +142,13 @@ sub run {
 		next if $seen{$root->messageId}++;
 
 		my $list_name = eval { guess_mailing_list($root)->listname };
+		my $list_key = $list_name || "unknown";
 
-		alias my $list = $lists{$list_name || "unknown"};
-
-		unless ( $list ) {
-			$list = Mail::Summary::Tools::Summary::List->new( $list_name ? (name => $list_name) : () );
+		my $list = $lists{$list_key} ||= do {	
+			my $list = Mail::Summary::Tools::Summary::List->new( $list_name ? (name => $list_name) : () );
 			$summary->add_lists( $list );
-		}
+			$list;
+		};
 
 		my $summarized_thread = Mail::Summary::Tools::Summary::Thread->from_mailbox_thread( $thread,
 			collect_posters => $self->{posters},

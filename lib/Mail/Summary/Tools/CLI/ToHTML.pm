@@ -6,8 +6,6 @@ use base qw/App::CLI::Command/;
 use strict;
 use warnings;
 
-use utf8;
-
 use Mail::Summary::Tools::Summary;
 use Mail::Summary::Tools::Output::HTML;
 

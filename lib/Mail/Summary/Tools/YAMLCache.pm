@@ -4,7 +4,6 @@ package Mail::Summary::Tools::YAMLCache;
 use Moose;
 
 use YAML::Syck ();
-use Data::Visitor::Callback;
 
 has data => (
 	isa => "HashRef",

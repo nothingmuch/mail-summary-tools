@@ -3,8 +3,6 @@
 package Mail::Summary::Tools::Output::HTML;
 use Moose;
 
-use utf8;
-
 use Mail::Summary::Tools::Output::TT;
 use Text::Markdown ();
 use HTML::Entities;
