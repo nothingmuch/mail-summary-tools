@@ -42,11 +42,13 @@ recommends 'YAML' => '0.62';
 
 install_script 'script/mailsum';
 
-license "mit";
+license "MIT";
 
 all_from 'lib/Mail/Summary/Tools.pm';
 
-WriteAll( sign => 1 );
+sign;
+
+WriteAll;
 
 
 
