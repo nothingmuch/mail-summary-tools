@@ -97,7 +97,8 @@ sub rt_uri {
 sub link_to_message {
 	my ( $self, $message_id, $text ) = @_;
 
-	my $thread = $self->summary->get_thread_by_id( $message_id ) || die "$message_id is not in summary";
+	my $thread = $self->summary->get_thread_by_id( $message_id )
+		|| die "The link to <$message_id> could not be resolved, because no thread with that message ID is in the summary data";
 
 	my $uri;
 	
