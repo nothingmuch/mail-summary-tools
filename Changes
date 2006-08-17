@@ -1,0 +1,7 @@
+0.02
+	- Documenation and stuff (kudra++)
+	- out_of_date gets set if a thread is hidden and gets new messages
+	- some error messages have been improved
+
+0.01
+	- Initial release
