@@ -97,6 +97,34 @@ my $later   = $late + 100;
 	ok( $thread->extra->{out_of_date}, "marked as out of date" );
 	is( $thread->summary, "oink", "summary" );
 }
+{
+
+	my $thread = Mail::Summary::Tools::Summary::Thread->new(
+		message_id => 'foo@bar.com',
+		subject    => 'Moose',
+		hidden     => 1,
+		extra => {
+			date_from => $early,
+			date_to   => $late,
+		},
+	);
+
+	my $thread_new = Mail::Summary::Tools::Summary::Thread->new(
+		message_id => 'foo@bar.com',
+		subject    => 'Moose',
+		extra => {
+			date_from => $earlier,
+			date_to   => $later,
+		},
+	);
+
+	$thread->merge( $thread_new );
+
+	is( $thread->extra->{date_from}, $earlier, "date_from" );
+	is( $thread->extra->{date_to}, $later, "date_to" );
+	ok( $thread->extra->{out_of_date}, "marked as out of date" );
+	ok( $thread->hidden, "hidden" );
+}
 
 {
 

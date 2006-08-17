@@ -218,7 +218,8 @@ sub merge_dates {
 
 sub merge_out_of_date {
 	my ( $self, $thread ) = @_;
-	return unless $self->summary or $thread->summary; # it can't be out of date if there's no summary
+	# it can't be out of date if there's no summary
+	return unless $self->summary or $thread->summary or $self->hidden or $thread->hidden;
 
 	# if any thread is out of date then this one becomes out of date
 
@@ -228,11 +229,11 @@ sub merge_out_of_date {
 	my $earliest = $self->earlier_thread( $thread );
 	my $latest   = $self->later_thread( $thread );
 
-	if ( $self->summary ) {
+	if ( $self->summary || $self->hidden ) {
 		# we keep the existing summary, and if the other thread extends beyond
 		# our range it's out of date
 		$out_of_date = 1 if $earliest != $self or $latest != $self;
-	} elsif ( $thread->summary ) {
+	} elsif ( $thread->summary || $thread->hidden ) {
 		# we take the new summary, and if we extend beyond the other range then
 		# it's out of date
 		$out_of_date = 1 if $earliest != $thread or $latest != $thread;
