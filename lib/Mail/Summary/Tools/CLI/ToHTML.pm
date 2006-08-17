@@ -55,18 +55,26 @@ sub run {
 __PACKAGE__;
 
 __END__
-
 =pod
 
-=head1 NAME
+=head1 USAGE
 
-Mail::Summary::Tools::CLI::ToHTML - 
+	tohtml --input summary.yaml > foo.html
 
-=head1 SYNOPSIS
+=head1 OPTIONS
 
-	use Mail::Summary::Tools::CLI::ToHTML;
+	--verbose                   Not yet implemented.
+	--input=FILE.yml            Which summary to process
+	--output                    Where to output. Defaults to '-', which is stdout.
+	--archive=SERVICE           Which archival service to link to. "google" or "gmane".
+	--h1=tag,tag                Override the default tag for heading tags.  Accepts a
+	                            list of tags, such that p,b becomes <p><b>...</b></p>
+	--h2                        see --h1
+	--h3                        see --h1
 
 =head1 DESCRIPTION
+
+Emits HTML output from the YAML summary.
 
 =cut
 
