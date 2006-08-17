@@ -75,7 +75,7 @@ sub from_mailbox_thread {
 		my @from_fields = grep { !$seen_email{$_->address}++ } map { $_->from } @messages;
 
 		my @posters = map {{
-			name  => ( $_->name || $_->user ),
+			name  => ( $_->phrase || $_->comment || $_->user ),
 			email => $_->address,
 		} } @from_fields;
 
