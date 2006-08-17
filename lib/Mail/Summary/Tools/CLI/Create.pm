@@ -139,7 +139,7 @@ sub run {
 		my $thread = shift;
 		
 		my $root = get_root_message($thread);
-		next if $seen{$root->messageId}++;
+		return if $seen{$root->messageId}++;
 
 		my $list_name = eval { guess_mailing_list($root)->listname };
 		my $list_key = $list_name || "unknown";
