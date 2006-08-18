@@ -164,6 +164,7 @@ sub run {
 			$existing->merge( $summarized_thread );
 			$self->diag($summarized_thread->message_id . " is now out of date") if !$was_out_of_date and $existing->extra->{out_of_date};
 		} else {
+			$self->diag($summarized_thread->message_id . " has been added to the summary");
 			$list->add_threads( $summarized_thread );
 		}
 	});
