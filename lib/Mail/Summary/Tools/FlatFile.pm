@@ -192,7 +192,7 @@ sub emit_head {
 		list => $list->name,
 		message_id => $thread->message_id,
 		subject => $thread->subject,
-		( $thread->hidden ? ( hidden => 1 ) : () ),
+		( $thread->hidden ? ( hidden => $thread->hidden ) : () ),
 		( $thread->extra->{out_of_date} ? ( out_of_date => 1 ) : () ),
 		map { $_ => $thread->can($_) ? $thread->$_ : $thread->extra->{$_} } $self->extra_fields,
 	});
