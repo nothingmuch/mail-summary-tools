@@ -19,7 +19,7 @@ has message_id => (
 );
 
 has hidden => (
-	isa => "Bool",
+	isa => "Bool|Str",
 	is  => "rw",
 	required => 0,
 );
