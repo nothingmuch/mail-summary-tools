@@ -17,6 +17,7 @@ use constant options => (
 	'a|archive:s'    => 'archive',  # defaults to 'google'
 	'p|posters'      => 'posters',
 	's|skip'         => 'skip',
+	'h|hidden'       => 'hidden',
 	'l|links'        => 'links',
 	'd|dates'        => 'dates',
 	'm|misc'         => 'misc',
@@ -40,6 +41,7 @@ sub run {
 	my $flat = Mail::Summary::Tools::FlatFile->new(
 		summary         => $summary,
 		skip_summarized => $self->{skip},
+		include_hidden  => $self->{hidden},
 		list_posters    => $self->{posters},
 		list_dates      => $self->{dates},
 		list_misc       => $self->{misc},
@@ -85,9 +87,12 @@ __END__
 	--verbose                   Not yet implemented.
 	--input=FILE.yml            The file to edit.
 	--posters                   List all the posters in a thread.
+	--dates                     List all the end and start dates of the thread.
 	--links                     Add links to the default archive.
 	--archive=SERVICE           Which archival service to link to. "google" or "gmane".
 	--misc                      List misc data (e.g. RT tickets)
+	--skip                      Skip threads that are already summarized.
+	--hidden                    Don't skip threads that are hidden.
 
 =cut
 
