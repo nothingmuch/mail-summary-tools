@@ -58,6 +58,48 @@ has archive_link_params => (
 	default => sub { return {} },
 );
 
+sub _extract_name {
+	# this is a slightly less eager _extract_name from Mail::Address
+	# that version was mean to chromatic, making him turn out as Chromatic
+	# the case changing logic has been removed
+	my ( $self, $name ) = @_;
+	local $_ = $name;
+
+	# trim whitespace
+	s/^\s+//;
+	s/\s+$//;
+	s/\s+/ /;
+
+	# Disregard numeric names (e.g. 123456.1234@compuserve.com)
+	return "" if /^[\d ]+$/;
+
+	# remove outermost parenthesis
+	s/^\((.*)\)$/$1/;
+
+	# remove outer quotation marks
+	s/^"(.*)"$/$1/;
+
+	# remove minimal embedded comments
+	s/\(.*?\)//g;
+
+	# remove all escapes
+	s/\\//g;
+
+	# remove internal quotation marks
+	s/^"(.*)"$/$1/;
+
+	# reverse "Last, First M." if applicable
+	s/^([^\s]+) ?, ?(.*)$/$2 $1/;
+	s/,.*//;
+
+	# some cleanup
+	s/\[[^\]]*\]//g;
+	s/(^[\s'"]+|[\s'"]+$)//g;
+	s/\s{2,}/ /g;
+
+	return $_;
+}
+
 sub from_mailbox_thread {
 	my ( $class, $thread, %options ) = @_;
 
@@ -75,9 +117,9 @@ sub from_mailbox_thread {
 		my @from_fields = grep { !$seen_email{$_->address}++ } map { $_->from } @messages;
 
 		my @posters = map {{
-			name  => ( $_->phrase || $_->comment || $_->user ),
+			name  => $class->_extract_name($_->phrase) || $class->_extract_name($_->comment) || $_->user,
 			email => $_->address,
-		} } @from_fields;
+		}} @from_fields;
 
 		$extra{posters} = \@posters;
 	}
