@@ -63,6 +63,111 @@ When you are done you can emit using C<totext> and C<tohtml>. The default
 outputs assume that the summary text is written in the markdown language. This
 translates well to HTML, and looks pretty good as-is in plain text.
 
+=head1 SAMPLE FILES
+
+=head2 YAML Summary
+
+The YAML summary will look something like this:
+
+	---
+	title: Mailing list summary
+	extra:
+	  header:
+	    - title: A Header Section
+          body: fooo bar gorch
+	  see_also:
+	    - name: Foo
+	      uri:  http://www.example.com/
+	    - name: The Perl Foundation
+	      uri:  http://www.example.com/
+	lists:
+	  - name: oink
+	    title: The Oink Mailing list
+	    threads:
+	      - message_id: 69d3ac770606131947r55708fc0g139242e5a989ae4e@mail.gmail.com
+	      posters:
+	        - email: user@example.com
+	          name: User One
+	        - email: user2@example.com
+	          name: User Two
+	        - email: user3@example.com
+	          name: User Three
+	      subject: 'The Message Subject'
+	      summary: >-
+	        Somebody asked whether or not monkeys like to eat cheese, at which
+	        points the monkey subscribed to the list said that they did not
+	        like cheese at all where he lives, but that he eats it anyway.
+
+Most fields are optional. The summary bodies should be written in the Markdown
+language.
+
+=head2 Flat File
+
+The flat file, optimized for editing, has threads separated by the string
+C<\n---\n>. Right after the separator is some YAML for meta data, and then an
+ignored paragraph, and then the summary data:
+
+	The first chunk is ignored, and has instructions
+
+	---
+	message_id: foo@bar.com
+	subject: Moose
+	hidden: 0 # can be used to omit a thread from the output
+	out_of_date: 1 # added by create --update
+	thread_uri: http://..../ # hard code a link to a different archive than the default
+
+	# these lines are ignored, and are provided for the summarizers
+	# convenience, including random links, posters names, the thread's date
+	# range, etc
+	<rt://perl/1234>
+	Some Guy
+	Some Other Guy
+
+	In the thread Titled Moose, Some Guy conjectured on the nature of Some
+	Other Guy's mother's profession. Some Other Guy then replied with a witty
+	retort. A flamewar ensued.
+
+=head2 Text Output
+
+The above summary converted to text should look like this:
+
+	Mailing list summary
+
+	 A Header Section
+
+	    fooo bar gorch
+
+	 The Oink Mailing List
+
+	  The Message Subject <http://xrl.us/moose>
+
+	    Somebody asked whether or not monkeys like to eat cheese, at which
+	    points the monkey subscribed to the list said that they did not
+	    like cheese at all where he lives, but that he eats it anyway.
+
+	 See Also
+
+	     * Foo <http://www.example.com>>
+	     * The Perl Foundation <http://www.example.com/>
+
+The text is emitted in utf8.
+
+Example output can be seen here:
+http://groups.google.com/group/perl.perl6.announce/msg/7d65491507dda589
+(autolinkified by google)
+
+=head2 HTML Output
+
+A real summary is probably a better example, since HTML source is not easily
+readable: http://pugs.blogs.com/pugs/2006/08/perl_6_mailing__2.html#more
+
+The HTML is ASCII, with all non ascii characters escaped by HTML::Entities.
+
+C<< <divs> >> are emitted for easy restructuring of the file, and the heading
+tags are customizable. For example, for use.perl.org Ann emits with C<--h2 p,b
+--h3 p,i> since h tags are not allowed, and the C<< <divs> >> are stripped by
+L<HTML::Element> to keep the size down.
+
 =head1 COMPONENTS
 
 These are the main components of this distribution:
