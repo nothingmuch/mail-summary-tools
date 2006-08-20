@@ -103,9 +103,10 @@ language.
 
 =head2 Flat File
 
-The flat file, optimized for editing, has threads separated by the string
-C<\n---\n>. Right after the separator is some YAML for meta data, and then an
-ignored paragraph, and then the summary data:
+The flat file format can be generated using the C<edit> command. It's optimized
+for ease of editing. The basic structure is a list of threads separated by the
+string C<\n---\n>. Right after the separator is some YAML for meta data, and
+then an ignored paragraph, and then the summary data:
 
 	The first chunk is ignored, and has instructions
 
@@ -129,7 +130,8 @@ ignored paragraph, and then the summary data:
 
 =head2 Text Output
 
-The above summary converted to text should look like this:
+The above summary converted to text (using the C<totext> command) should look
+like this:
 
 	Mailing list summary
 
@@ -157,6 +159,8 @@ http://groups.google.com/group/perl.perl6.announce/msg/7d65491507dda589
 (autolinkified by google)
 
 =head2 HTML Output
+
+HTML output is also available using the C<tohtml> command.
 
 A real summary is probably a better example, since HTML source is not easily
 readable: http://pugs.blogs.com/pugs/2006/08/perl_6_mailing__2.html#more
