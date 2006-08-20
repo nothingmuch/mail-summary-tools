@@ -53,9 +53,14 @@ sub bullet {
     $self->wrap( $text, $columns, '  * ', '    ' );
 }
 
-sub heading {
+sub subject {
     my ( $self, $text, $columns ) = @_;
     $self->wrap( $text, $columns, '  ', '  ' );
+}
+
+sub heading {
+    my ( $self, $text, $columns ) = @_;
+    $self->wrap( $text, $columns, ' ', ' ' );
 }
 
 sub _wrap_huge {
@@ -207,6 +212,7 @@ sub run {
 			wrap    => sub { $self->wrap(shift) },
 			bullet  => sub { $self->bullet(shift) },
 			heading => sub { $self->heading(shift) },
+			subject => sub { $self->subject(shift) },
 		},
 	);
 }
@@ -237,26 +243,26 @@ __PACKAGE__;
 __DATA__
 [% summary.title %]
 
-[% IF summary.extra.header %][% FOREACH section IN summary.extra.header %] [% heading(section.title) %]
+[% IF summary.extra.header %][% FOREACH section IN summary.extra.header %][% heading(section.title) %]
 
 [% wrap(section.body) %]
 [% END %]
-[% END %][% FOREACH list IN summary.lists %]
+[% END %][% FOREACH list IN summary.lists %][% num_threads = 0 %][% list_block = BLOCK %]
  [% list.title %]
 [% IF list.extra.description %]
 [% wrap(list.extra.description) %]
-[% END %][% FOREACH thread IN list.threads %][% IF thread.hidden %][% NEXT %][% END %]
-[% head = BLOCK %][% thread.subject %] <[% shorten(thread.archive_link.thread_uri) %]>[% END %][% heading(head) %]
+[% END %][% FOREACH thread IN list.threads %][% IF thread.hidden %][% NEXT %][% END %][% num_threads = num_threads + 1 %]
+[% head = BLOCK %][% thread.subject %] <[% shorten(thread.archive_link.thread_uri) %]>[% END %][% subject(head) %]
 
 [% IF thread.summary %][% wrap(thread.summary) %]
 [% ELSE %]    Posters:[% FOREACH participant IN thread.extra.posters %]
     - [% participant.name %][% END %]
-[% END %][% END %][% END %]
-[% IF summary.extra.footer %][% FOREACH section IN summary.extra.footer %] [% heading(section.title) %]
+[% END %][% END %][% END %][% IF num_threads > 1 %][% list_block %][% END %][% END %][% IF summary.extra.footer %][% FOREACH section IN summary.extra.footer %]
+[% heading(section.title) %]
 
 [% wrap(section.body) %]
 [% END %]
-[% END %][% IF summary.extra.see_also %] See Also
+[% END %][% IF summary.extra.see_also %][% heading("See Also") %]
 [% FOREACH item IN summary.extra.see_also %]
 [% link = BLOCK %][% item.name %] <[% shorten(item.uri ) %]>[% END %][% bullet(link) %]
 [% END %]
