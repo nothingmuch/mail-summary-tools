@@ -169,7 +169,7 @@ sub run {
 		}
 	});
 
-	$self->diag( "found threads in the mailing lists: @{[ map { $_->name } values %lists ]}" );
+	$self->diag( "found threads in the mailing lists: @{[ map { $_->name || '<unknown>' } values %lists ]}" );
 
 	$summary->save( $summary_out );
 }
