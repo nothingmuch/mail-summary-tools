@@ -50,7 +50,7 @@ sub process_body {
 
 sub bullet {
     my ( $self, $text, $columns ) = @_;
-    $self->wrap( $text, $columns, '  * ', '    ' );
+    $self->wrap( $text, $columns, '    * ', '      ' );
 }
 
 sub subject {
