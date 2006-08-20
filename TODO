@@ -10,5 +10,11 @@
 
 * the 'scrub' command to auto hide threads, clean subjects, etc
 
-* nntp to multiple mbox mirroring scheme
+* switch the HTML generator to use HTML::Element based templating, and allow
+  post processing (extract body, strip divs, etc) with the --small and --body
+  options.
 
+* make the HTML output skip lists with only hidden threads
+
+* fix the totext bullet rewrapping by making a Text::Quoted like module for
+  parsing bullets (Text::Autoformat is just too insane)
