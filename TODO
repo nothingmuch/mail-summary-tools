@@ -1,12 +1,15 @@
 * refactor create and totext into non ::CLI components
 
-* better filtering for create command
+* better filtering for create command (subject, etc)
 
 * docs
 
 * a catalyst based in-the-browser editor (low priority)
 
 * http://www.xray.mpe.mpg.de/mailing-lists/ support (downloading, linking)
+
+* http://nntp.perl.org/groups support (linking, via nntp msgid search ->
+  article number)
 
 * the 'scrub' command to auto hide threads, clean subjects, etc
 
