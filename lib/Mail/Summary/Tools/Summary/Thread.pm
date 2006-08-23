@@ -5,6 +5,7 @@ use Moose;
 
 use Mail::Summary::Tools::ArchiveLink::Easy;
 use Mail::Summary::Tools::ArchiveLink::Hardcoded;
+use Mail::Address;
 
 has subject => (
 	isa => "Str",
@@ -113,13 +114,16 @@ sub from_mailbox_thread {
 	my %extra;
 
 	if ( $options{collect_posters} ) {
+		my @from_fields = map { $_->head->get('From')->study } @messages;
+
 		my %seen_email;
-		my @from_fields = grep { !$seen_email{$_->address}++ } map { $_->from } @messages;
+		my @addresses = grep { !$seen_email{$_->address}++ }
+			map { Mail::Address->parse($_->decodedBody) } @from_fields;
 
 		my @posters = map {{
 			name  => $class->_extract_name($_->phrase) || $class->_extract_name($_->comment) || $_->user,
 			email => $_->address,
-		}} @from_fields;
+		}} @addresses;
 
 		$extra{posters} = \@posters;
 	}
