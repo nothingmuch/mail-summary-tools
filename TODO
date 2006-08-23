@@ -21,3 +21,6 @@
 
 * fix the totext bullet rewrapping by making a Text::Quoted like module for
   parsing bullets (Text::Autoformat is just too insane)
+
+* Make YAML::Cache support dir levels, to e.g. split up NNTP article overviews
+  by server, then group
