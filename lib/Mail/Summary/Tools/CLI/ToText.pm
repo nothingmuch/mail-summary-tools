@@ -1,32 +1,41 @@
 #!/usr/bin/perl
 
 package Mail::Summary::Tools::CLI::ToText;
-use base qw/App::CLI::Command/;
+use base qw/Mail::Summary::Tools::CLI::Command/;
 
 use strict;
 use warnings;
 
+use Class::Autouse (<<'#\'END_USE' =~ m!(\w+::[\w:]+)!g);
+#\
+
 use Mail::Summary::Tools::Summary;
 use Mail::Summary::Tools::Output::TT;
+
+#'END_USE
 
 use Text::Wrap ();
 
 use constant options => (
-	'v|verbose'       => "verbose",
-    'shorten:s'       => 'shorten',
-    's'               => 'shorten_bool',
-    'i|input=s'       => 'input',    # required, string
-    'o|output:s'      => 'output',   # defaults to '-'
-    'a|archive:s'     => 'archive',  # defaults to 'google'
-    't|template:s'    => 'template', # defaults to '', which means __DATA__
-    'c|columns:i'     => 'columns',  # defaults to 80
-    'w|wrap_overflow' => 'wrap_overflow', # whether or not to force wrapping of overflowing text
+	[ 'verbose|v!'    => "Output progress information" ],
+    [ 'input|i=s'     => 'Summary file to read' ],
+    [ 'output|o=s'    => 'The file to output (defaults to STDOUT)' ],
+	[ 'shortening|s!' => "Enable URI shortening (defaults to true)", { default => 1 } ],
+    [ 'shorten=s'     => 'shortening service (defaults to "Metamark" -- http://xrl.us/)' ], #{ implies => "shortening", default => "Metamark" } ],
+    [ 'archive|a=s'   => 'The on-line archive to use (defaults to "google")', { default => "google" }],
+	[ 'columns|c=i'   => 'The column width to wrap to (defaults to 75)', { default => 75 } ],
+    [ 'force_wrap|w!' => 'Force wrapping of overflowed text (like long URIs)' ], # whether or not to force wrapping of overflowing text
+	[ 'template=s'    => "Override the template toolkit file used to format the text" ],
 );
+
+sub usage_desc {
+	"%c totext %o [summary.yaml]"
+}
 
 sub wrap {
     my ( $self, $text, $columns, $first_indent, $rest_indent ) = @_;
 
-    $columns ||= $self->{columns} || 80;
+    $columns ||= $self->{opt}{columns} || 80;
     $first_indent ||= '    ';
     $rest_indent  ||= '    ';
 
@@ -65,7 +74,7 @@ sub heading {
 
 sub _wrap_huge {
     my $self = shift;
-    return $self->{wrap_overflow} ? 'wrap' : 'overflow'; # default to not breaking URIs
+    return $self->{opt}{force_wrap} ? 'wrap' : 'overflow'; # default to not breaking URIs
 }
 
 sub shorten {
@@ -121,16 +130,16 @@ sub expand_uri {
 
 sub really_shorten {
     my ( $self, $uri ) = @_;
-    
-    my $service = $self->{shorten};
+    my $service = $self->{opt}{shorten};
 
-	my $cache = $self->{context}->cache;
+	my $cache = $self->app->context->cache;
 
 	my $cache_key = join(":", "shorten", $service, $uri);
 
 	if ( my $short = $cache->get($cache_key) ) {
 		return $short;
 	} else {
+		$self->diag( "Shortening URI (cache miss): $uri" );
 		my $mod = "WWW::Shorten::$service";
 		unless ( $mod->can("makeashorterlink") ) {
 			my $file = join("/", split("::", $mod ) ) . ".pm";
@@ -146,7 +155,7 @@ sub really_shorten {
 
 sub shortening_enabled {
     my ( $self, $uri ) = @_;
-    if ( $self->{shorten} ) {
+    if ( $self->{opt}{shorten} ) {
         return 1;
     } else {
         return;
@@ -163,7 +172,7 @@ sub should_shorten {
 sub template_input {
     my $self = shift;
 
-    if ( my $file = $self->{template} ) {
+    if ( my $file = $self->{opt}{template} ) {
         open my $fh, "<", $file or die "Couldn't open template (open($file): $!)\n";
 		binmode $fh, ":utf8";
         return $fh;
@@ -175,28 +184,45 @@ sub template_input {
 
 sub template_output {
     my $self = shift;
+	my $opt = $self->{opt};
     
-    if ( !$self->{output} or $self->{output} eq '-' ) {
+    if ( !$opt->{output} or $opt->{output} eq '-' ) {
 		binmode STDOUT, ":utf8";
         return \*STDOUT;
-    } elsif ( my $file = $self->{output} ) {
+    } elsif ( my $file = $opt->{output} ) {
         open my $fh, ">", $file or die "Couldn't open output (open($file): $!)\n";
 		binmode $fh, ":utf8";
         return $fh;
     }
 }
 
-sub run {
-    my ( $self, @args ) = @_;
-	@args and $self->{$_} ||= shift @args for qw/input output/;
+sub validate {
+	my ( $self, $opt, $args ) = @_;
+	@$args and $opt->{$_} ||= shift @$args for qw/input output/;
 
-	$self->{shorten} ||= "Metamark" if $self->{shorten_bool};
+	unless ( $opt->{input} ) {
+		$self->usage_error("Please specify an input summary YAML file.");
+	}
+	
+	if ( @$args ) {
+		$self->usage_error("Unknown arguments: @$args.");
+	}
+
+	# FIXME implies is broken
+	$opt->{shortening} = 1 if exists $opt->{shorten};
+	$opt->{shorten} ||= 'Metamark' if $opt->{shortening};
+
+	$self->{opt} = $opt;
+}
+
+sub run {
+    my ( $self, $opt, $args ) = @_;
 
     my $summary = Mail::Summary::Tools::Summary->load(
-        $self->{input} || die("You must supply a summary YAML file to textify.\n"),
+        $opt->{input},
         thread => {
-            default_archive => $self->{archive} || "google",
-			archive_link_params => { cache => $self->{context}->cache },
+            default_archive => $opt->{archive} || "google",
+			archive_link_params => { cache => $self->app->context->cache },
         },
     );
 
@@ -221,22 +247,15 @@ __PACKAGE__;
 
 =pod
 
-=head1 USAGE
+=head1 NAME
 
-	totext --shorten --input summary.yaml
+Mail::Summary::Tools::CLI::ToText - Emit a formatted plain text summary
 
-=head1 OPTIONS
+=head1 SYNOPSIS
 
-	--verbose                   Not yet implemented.
-	--input=FILE.yml            Which summary to process
-	--output                    Where to output. Defaults to '-', which is stdout.
-	--archive=SERVICE           Which archival service to link to. "google" or "gmane".
-	--shorten[=SERVICE]         Shorten long URIs in the text output. You can
-	                            specify a WWW::Shorten service. The short form (-s)
-	                            accepts no arguments, and defaults to xrl.us
-	--template=FILE             Use this template instead of the deafult one 
-	--columns=NCOLS             For text wrapping. Defaults to 80.
-	--wrap_overflow             Whether or not to force wrapping of overflowing text.
+	# see command line usage
+
+=head1 DESCRIPTION
 
 =cut
 

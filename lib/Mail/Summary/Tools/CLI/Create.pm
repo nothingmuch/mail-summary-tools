@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 package Mail::Summary::Tools::CLI::Create;
-use base qw/App::CLI::Command/;
+use base qw/Mail::Summary::Tools::CLI::Command/;
 
 use strict;
 use warnings;
@@ -9,6 +9,8 @@ use warnings;
 use DateTime::Format::DateManip;
 use DateTime::Infinite;
 
+use Class::Autouse (<<'#\'END_USE' =~ m!(\w+::[\w:]+)!g);
+#\
 
 use Mail::Box::Manager;
 
@@ -16,6 +18,9 @@ use Mail::Summary::Tools::Summary;
 use Mail::Summary::Tools::Summary::List;
 use Mail::Summary::Tools::Summary::Thread;
 use Mail::Summary::Tools::ThreadFilter;
+
+#'END_USE
+
 use Mail::Summary::Tools::ThreadFilter::Util qw/
 	get_root_message guess_mailing_list
 	thread_root last_in_thread any_in_thread all_in_thread
@@ -23,20 +28,24 @@ use Mail::Summary::Tools::ThreadFilter::Util qw/
 	mailing_list_is in_date_range
 /; # subject_matches
 
+sub usage_desc {
+	"%c create %o summary.yaml mailbox [mailbox2]\n".
+	"%c create \%o -o summary.yaml -i mailbox -i mailbox2"
+}
+
 use constant options => (
-	'v|verbose'   => "verbose",
-	'i|input=s@'  => "input",
-	'o|output=s'  => "output",
-	'u|update'    => "update",
-	'f|from=s'    => "from",
-	't|to=s'      => "to",
-	'l|list=s'    => "list",
-	's|subject=s' => "subject", # TODO
-	'p|posters'   => "posters",
-	'd|dates'     => "dates",
-	'm|match=s'   => "match", # TODO
-	'c|clean'     => "clean",
-	'r|rt'        => "rt",
+	[ 'input|i=s@'   => "Mailboxes to read from (can be used several times)" ],
+	[ 'output|o=s'   => "Summary file to write" ],
+	[ 'update|u!'    => "Update an existing summary" ],
+	[ 'from|f=s'     => "From date (any string Date::Manip can parse)" ],
+	[ 'to|t=s'       => "To date (any string Date::Manip can parse)" ],
+	[ 'list|l=s@'    => "Only posts in this list (can be used several times)" ],
+	#[ 'subject|s=s' => "subject" ], # TODO
+	[ 'posters|p!'   => "Collect information about posters (defaults to true)", { default => 1 } ],
+	[ 'dates|d!'     => "Collect information about dates (defaults to true)", { default => 1 } ],
+	#[ 'm|match=s'   => "match" ], # TODO
+	[ 'clean|c!'     => "Scrub the thread subjects" ],
+	[ 'rt|r!'        => "Collect information about RT tickets (defaults to true)", { default => 1 } ],
 );
 
 sub construct_filters {
@@ -51,9 +60,10 @@ sub construct_filters {
 
 sub construct_date_filter {
 	my $self = shift;
+	my $opt = $self->{opt};
 
-	my $from = DateTime::Format::DateManip->parse_datetime( $self->{from} || return );
-	my $to   = DateTime::Format::DateManip->parse_datetime( $self->{to} || return );
+	my $from = DateTime::Format::DateManip->parse_datetime( $opt->{from} || return );
+	my $to   = DateTime::Format::DateManip->parse_datetime( $opt->{to} || return );
 
 	if ( defined($from) || defined($to) ) {
 		$from = DateTime::Infinite::Past->new   unless defined($from);
@@ -68,7 +78,7 @@ sub construct_date_filter {
 sub construct_list_filter {
 	my $self = shift;
 
-	if ( my $list = $self->{list} ) {
+	if ( my $list = $self->{opt}{list} ) {
 		return $self->comb_filter( mailing_list_is($list) );
 	} else {
 		return;
@@ -97,7 +107,7 @@ sub filter {
 sub clean_subject {
 	my ( $self, $subject ) = @_;
 
-	return $subject unless $self->{clean};
+	return $subject unless $self->{opt}{clean};
 
 	$subject =~ s/^\s*(?:Re|Fwd):\s*//i;
 	$subject =~ s/^\s*\[[\w-]+\]\s*//; # remove [Listname] munging
@@ -106,15 +116,25 @@ sub clean_subject {
 	return $subject;
 }
 
+sub validate {
+	my ( $self, $opt, $args ) = @_;
+	$self->{opt} = $opt;
+
+	@$args and $opt->{$_} ||= shift @$args for qw/output/;
+	push @{ $opt->{input} ||= [] }, @$args; @$args = ();
+
+	unless ( $opt->{output} and @{ $opt->{input} } ) {
+		$self->usage_error("Please specify a summary output file and at least one mail box for input.");
+	}
+}
+
 sub run {
-	my ( $self, @args ) = @_;
-	@args and $self->{$_} ||= shift @args for qw/output/;
-	push @{ $self->{input} }, @args;
+	my ( $self, $opt, $args ) = @_;
 
-	my @folders     = @{ $self->{input} } or die "Must provide at least one mail box for input\n";
-	my $summary_out = $self->{output}     or die "Must provide output yaml file for output\n";
+	my @folders     = @{ $opt->{input} };
+	my $summary_out = $opt->{output};
 
-	if ( -f $summary_out and !$self->{update} ) {
+	if ( -f $summary_out and !$opt->{update} ) {
 		die "The output file '$summary_out' exists. Either remove it or specify the --update option\n";
 	}
 	
@@ -129,7 +149,7 @@ sub run {
 		folders  => [ map { $mgr->open( folder => $_ ) } @folders ],
 		timespan => 'EVER',
 		window   => 'ALL',
-		( $self->{verbose} ? (trace => "PROGRESS") : ()),
+		( $self->app->global_options->{verbose} ? (trace => "PROGRESS") : ()),
 	);
 
 	my %lists = map { $_->name => $_ } $summary->lists;
@@ -151,9 +171,9 @@ sub run {
 		};
 
 		my $summarized_thread = Mail::Summary::Tools::Summary::Thread->from_mailbox_thread( $thread,
-			collect_posters => $self->{posters},
-			collect_dates   => $self->{dates},
-			collect_rt      => $self->{dates},
+			collect_posters => $opt->{posters},
+			collect_dates   => $opt->{dates},
+			collect_rt      => $opt->{dates},
 			process_subject => sub { $self->clean_subject(shift) },
 		);
 
@@ -174,36 +194,19 @@ sub run {
 	$summary->save( $summary_out );
 }
 
-sub diag {
-	my ( $self, @message ) = @_;
-	return unless $self->{verbose};
-	my $message = "@message";
-	chomp $message;
-	warn "$message\n";
-}
-
 __PACKAGE__;
 
 __END__
 
 =pod
 
-=head1 USAGE
+=head1 NAME
 
-	create summary.yaml foo.mbox
+Mail::Summary::Tools::CLI::Create - Create or update a summary file from mailboxes
 
 =head1 SYNOPSIS
 
-	--verbose                   Not yet implemented.
-	--input=MAILBOX             Something you can pass to Mail::Box::Manager.
-	--output=FILE.yaml          A yaml file to write to.
-	--update                    Update an existing summary (when the mailbox has new messages)
-	--from=DATE                 Something that Date::Manip can parse ('june 1', etc)
-	--to=DATE                   like --from
-	--list=name                 Only messages for a mailing list by that name.
-	--posters                   Extract all posters in a thread
-	--dates                     Extract dates from the thread
-	--clean                     Try to clean the subject line.
+	# see command line usage
 
 =head1 DESCRIPTION
 

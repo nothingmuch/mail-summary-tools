@@ -16,6 +16,7 @@ has homedir => (
 has cache => (
 	isa => "Object",
 	is  => "rw",
+	lazy => 1,
 	default => sub { $_[0]->create_cache },
 );
 
@@ -40,8 +41,6 @@ sub create_cache {
 	require Mail::Summary::Tools::YAMLCache;
 	return Mail::Summary::Tools::YAMLCache->new( file => $self->cache_storage );
 }
-
-
 
 __PACKAGE__;
 

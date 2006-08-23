@@ -1,50 +1,76 @@
 #!/usr/bin/perl
 
 package Mail::Summary::Tools::CLI::ToHTML;
-use base qw/App::CLI::Command/;
+use base qw/Mail::Summary::Tools::CLI::Command/;
 
 use strict;
 use warnings;
 
+use Class::Autouse (<<'#\'END_USE' =~ m!(\w+::[\w:]+)!g);
+#\
+
 use Mail::Summary::Tools::Summary;
 use Mail::Summary::Tools::Output::HTML;
 
+#'END_USE
+
 use constant options => (
-	'v|verbose'       => "verbose",
-    'i|input=s'       => 'input',    # required, string
-    'o|output:s'      => 'output',   # defaults to '-'
-    'a|archive:s'     => 'archive',  # defaults to 'google'
-	'h1:s'            => 'h1',
-	'h2:s'            => 'h2',
-	'h3:s'            => 'h3',
+	[ 'verbose|v!'      => "Output verbose information" ],
+    [ 'input|i=s'       => 'The summary YAML file to emit' ],
+    [ 'output|o=s'      => 'A file to output to (defaults to STDOUT)' ],
+    [ 'archive|a=s'     => 'On-line archive to use', { default => "google" } ],
+	#[ 'compact|c'       => 'Emit compact HTML (no <div> tags, etc)' ],
+	#[ 'body|b'          => 'Emit body fragment only (as opposed to a full, valid document)' ],
+	[ 'h1=s@'           => 'Tags to use instead of h1 (e.g. --h1 p,b emits <p><b>heading</b></p>)', { default => ["h1"] } ],
+	[ 'h2=s@'           => 'see h1', { default => ["h2"] } ],
+	[ 'h3=s@'           => 'see h1', { default => ["h3"] } ],
 );
 
 sub template_output {
     my $self = shift;
+	my $opt = $self->{opt};
     
-    if ( !$self->{output} or $self->{output} eq '-' ) {
+    if ( !$opt->{output} or $opt->{output} eq '-' ) {
         return \*STDOUT;
-    } elsif ( my $file = $self->{output} ) {
+    } elsif ( my $file = $opt->{output} ) {
         open my $fh, ">", $file or die "Couldn't open output (open($file): $!)\n";
         return $fh;
     }
 }
 
+sub validate {
+	my ( $self, $opt, $args ) = @_;
+	@$args and $opt->{$_} ||= shift @$args for qw/input output/;
+
+	unless ( $opt->{input} ) {
+		$self->usage_error("Please specify an input summary YAML file.");
+	}
+	
+	if ( @$args ) {
+		$self->usage_error("Unknown arguments: @$args.");
+	}
+
+	foreach my $tag ( qw/h1 h2 h3/ ) {
+		@{ $opt->{$tag} } = map { split ',' } @{ $opt->{$tag} };
+	}
+
+	$self->{opt} = $opt;
+}
+
 sub run {
-	my ( $self, @args ) = @_;
-	@args and $self->{$_} ||= shift @args for qw/input output/;
+	my ( $self, $opt, $args ) = @_;
 
     my $summary = Mail::Summary::Tools::Summary->load(
-        $self->{input} || die("You must supply a summary YAML file to textify.\n"),
+        $opt->{input},
         thread => {
-            default_archive => $self->{archive} || "google",
-			archive_link_params => { cache => $self->{context}->cache },
+            default_archive => $opt->{archive} || "google",
+			archive_link_params => { cache => $opt->{context}->cache },
         },
     );
 
 	my $o = Mail::Summary::Tools::Output::HTML->new(
 		summary => $summary,
-		map { defined($self->{$_}) ? ( "${_}_tag" => [ split ',', $self->{$_} ] ) : () } qw/h1 h2 h3/,
+		map { $_ . "_tag" => $opt->{$_} } qw/h1 h2 h3/,
 	);
 
 	my $out = $self->template_output;
@@ -57,24 +83,12 @@ __PACKAGE__;
 __END__
 =pod
 
-=head1 USAGE
+=head1 NAME
 
-	tohtml --input summary.yaml > foo.html
+Mail::Summary::Tools::CLI::ToHTML - Emit a formatted HTML summary
 
-=head1 OPTIONS
+=head1 SYNOPSIS
 
-	--verbose                   Not yet implemented.
-	--input=FILE.yml            Which summary to process
-	--output                    Where to output. Defaults to '-', which is stdout.
-	--archive=SERVICE           Which archival service to link to. "google" or "gmane".
-	--h1=tag,tag                Override the default tag for heading tags.  Accepts a
-	                            list of tags, such that p,b becomes <p><b>...</b></p>
-	--h2                        see --h1
-	--h3                        see --h1
+	# see command line usage
 
 =head1 DESCRIPTION
-
-Emits HTML output from the YAML summary.
-
-=cut
-

@@ -1,28 +1,40 @@
 #!/usr/bin/perl
 
 package Mail::Summary::Tools::CLI;
-use base qw/App::CLI/;
+use base qw/App::Cmd/;
+
+use Class::Autouse (<<'#\'END_USE' =~ m!(\w+::[\w:]+)!g);
+#\
 
 use Mail::Summary::Tools::CLI::Context;
+use Mail::Summary::Tools::CLI::Config;
+
+#'END_USE
 
 use strict;
 use warnings;
 
-use constant alias => (
-	totext => "ToText",
-	tohtml => "ToHTML",
+use constant global_opt_spec => (
+	[ "verbose|v!" => "Verbose output" ],
 );
 
-sub get_cmd {
-	my $self = shift;
-	my $cmd = $self->SUPER::get_cmd(@_);
-	$cmd->{context} = $self->make_context,
-	$cmd;
+use constant plugin_search_path => __PACKAGE__;
+
+sub _module_pluggable_options {
+	return (
+		only   => qr/CLI::\w+$/x, # no nested commands
+		except => qr/CLI::(?:Context|Config|Command)$/,
+	);
 }
 
-sub make_context {
+sub config {
 	my $self = shift;
-	Mail::Summary::Tools::CLI::Context->new();
+	$self->{config} ||= Mail::Summary::Tools::CLI::Config->new();
+}
+
+sub context {
+	my $self = shift;
+	$self->{context} ||= Mail::Summary::Tools::CLI::Context->new();
 }
 
 __PACKAGE__;
@@ -33,7 +45,7 @@ __END__
 
 =head1 NAME
 
-Mail::Summary::Tools::CLI - App::CLI based mailing list summarization tool.
+Mail::Summary::Tools::CLI - App::Cmd based mailing list summarization tool.
 
 =head1 SYNOPSIS
 

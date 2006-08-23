@@ -5,7 +5,7 @@ use warnings;
 
 use Mail::Summary::Tools::CLI;
 
-Mail::Summary::Tools::CLI->dispatch;
+Mail::Summary::Tools::CLI->run;
 
 
 

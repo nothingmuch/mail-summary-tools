@@ -1,73 +1,151 @@
 #!/usr/bin/perl
 
 package Mail::Summary::Tools::CLI::Edit;
-use base qw/App::CLI::Command/;
+use base qw/Mail::Summary::Tools::CLI::Command/;
 
 use strict;
 use warnings;
 
+use Class::Autouse (<<'#\'END_USE' =~ m!(\w+::[\w:]+)!g);
+#\
+
 use Mail::Summary::Tools::Summary;
 use Mail::Summary::Tools::FlatFile;
 use Proc::InvokeEditor;
-use File::Slurp;
+
+#'END_USE
 
 use constant options => (
-	'v|verbose'      => 'verbose',
-	'i|input=s'      => 'input',
-	'a|archive:s'    => 'archive',  # defaults to 'google'
-	'p|posters'      => 'posters',
-	's|skip'         => 'skip',
-	'h|hidden'       => 'hidden',
-	'l|links'        => 'links',
-	'd|dates'        => 'dates',
-	'm|misc'         => 'misc',
-	'save'           => "save",
-	'load'           => "load",
-	'extra_fields:s' => "extra_fields",
+	[ 'verbose|v!'       => 'Output progress information' ],
+	[ 'input|i=s'        => 'The summary file to edit' ],
+	[ 'mode'             => hidden => { default => "interactive", one_of => [
+		[ 'interactive'      => "Edit the file interactively (the default)" ],
+		[ 'save:s'           => "Output a flatfile to a file or STDOUT" ],
+		[ 'load:s'           => "Load the specified file or STDIN into the summary" ],
+	] } ],
+	[ 'skip|s!'          => 'Skip threads that have already been summarized' ],
+	[ 'hidden|H!'        => 'Include hidden threads' ],
+	[ 'links|l!'         => 'Include links to on-line archives', { default => 1 } ], # TODO shorten
+	[ 'archive|a=s'      => 'The rchive to use (defaults to "google")', { default => "google" } ],
+	[ 'posters|p!'       => 'Include posters names in the comment section', { default => 1 } ],
+	[ 'dates|d!'         => 'Include start and end dates in the comment section', { default => 1 } ],
+	[ 'misc|m!'          => 'Include misc info in the comment section', { default => 1 } ],
+	[ 'extra_field|e=s@' => "Additional fields to include in the YAML header (can be used several times)" ],
+	[ 'pattern|P=s@'     => "Only include summaries matching this regex (matches against formatted text)" ],
 );
 
-sub run {
-	my ( $self, @args ) = @_;
-	@args and $self->{$_} ||= shift @args for qw/input/;
+sub validate {
+	my ( $self, $opt, $args ) = @_;
+	@$args and $opt->{$_} ||= shift @$args for qw/input/;
 
-    my $summary = Mail::Summary::Tools::Summary->load(
-        $self->{input} || die("You must supply a summary YAML file to edit.\n"),
+	unless ( $opt->{input} ) {
+		$self->usage_error("Please specify an input summary YAML file.");
+	}
+	
+	if ( @$args ) {
+		$self->usage_error("Unknown arguments: @$args.");
+	}
+
+	if ( defined($opt->{load}) and $opt->{load} eq "" || $opt->{load} ) {
+		$self->usage_error("You can choose one and only one of --interactive, --load or --save.") if $opt->{interactive};
+		$opt->{load} ||= \*STDIN;
+		unless ( ref( my $file = $opt->{load} ) ) {
+			open my $in, "<", $file || die "open($file): $!";
+			$opt->{load} = $in;
+		}
+	}
+	
+	if ( defined($opt->{save}) and $opt->{save} eq "" || $opt->{save} ) {
+		$self->usage_error("You can choose one and only one of --interactive, --load or --save.") if $opt->{load};
+		$opt->{save} ||= \*STDOUT;
+		unless ( ref( my $file = $opt->{save} ) ) {
+			open my $out, ">", $file || die "open($file): $!";
+			$opt->{save} = $out;
+		}
+	}
+
+	$self->{opt} = $opt;
+}
+
+sub load_summary {
+	my $self = shift;
+	my $opt = $self->{opt};
+
+	Mail::Summary::Tools::Summary->load(
+        $opt->{input},
         thread => {
-            default_archive => $self->{archive} || "google",
-			archive_link_params => { cache => $self->{context}->cache },
+            default_archive => $opt->{archive},
+			archive_link_params => { cache => $self->app->context->cache },
         },
 	);
+}
 
-	my $flat = Mail::Summary::Tools::FlatFile->new(
+sub create_flatfile {
+	my ( $self, $summary ) = @_;
+	my $opt = $self->{opt};
+
+	Mail::Summary::Tools::FlatFile->new(
 		summary         => $summary,
-		skip_summarized => $self->{skip},
-		include_hidden  => $self->{hidden},
-		list_posters    => $self->{posters},
-		list_dates      => $self->{dates},
-		list_misc       => $self->{misc},
-		add_links       => $self->{links} || !!$self->{archive},
-		extra_fields    => [ split ',', $self->{extra_fields} || '' ],
+		skip_summarized => $opt->{skip},
+		include_hidden  => $opt->{hidden},
+		list_posters    => $opt->{posters},
+		list_dates      => $opt->{dates},
+		list_misc       => $opt->{misc},
+		add_links       => $opt->{links},
+		extra_field     => $opt->{extra_field},
+		patterns        => [ map { qr/$_/ } @{ $opt->{pattern} || [] } ],
 	);
+}
 
-	die "You can either save or load, not both at once" if $self->{load} && $self->{save};
+sub run {
+	my ( $self, $opt, $args ) = @_;
+	my $method = "run_$opt->{mode}";
+	$self->$method;
+}
 
-	if ( $self->{save} ) {
-		my $out;
-		if ( @args ) {
-			open $out, ">", $args[0] or die "open($args[0]): $!";
-		} else {
-			$out = \*STDOUT;
+sub run_save {
+	my $self = shift;
+
+	my $out = $self->{opt}{save};
+	print $out $self->create_flatfile( $self->load_summary )->save;
+}
+
+sub run_load {
+	my $self = shift;
+	my $opt = $self->{opt};
+
+	my $summary = $self->load_summary;
+	my $flat = $self->create_flatfile( $summary );
+	
+	my $in = $opt->{load};
+	my $buffer = do { local $/; <$in> };
+
+	$flat->load($buffer);
+	$summary->save( $opt->{input} );
+}
+
+sub run_interactive {
+	my $self = shift;
+	my $opt = $self->{opt};
+
+	my $summary = $self->load_summary;
+	my $flat = $self->create_flatfile( $summary );
+	
+	my $buffer = $flat->save;
+	do {
+		if ( $@ ) {
+			my $err = $@;
+			$err =~ s/^/# /mg;
+			$buffer = "# There was an error in your output:\n\n$err\n\n# to abort clear the entire file\n\n$buffer";
 		}
-		print $out $flat->save;
-	} elsif ( $self->{load} ) {
-		local $/;
-		local @ARGV = @args;
-		$flat->load(scalar(<>));
-		$summary->save( $self->{input} );
-	} else {
-		$flat->load( scalar(Proc::InvokeEditor->edit( $flat->save )) );
-		$summary->save( $self->{input} );
-	}
+
+		$buffer = Proc::InvokeEditor->edit( $buffer );
+
+		exit unless $buffer =~ /\S/;
+
+	} until eval { $flat->load($buffer) };
+
+	$summary->save( $opt->{input} );
 }
 
 __PACKAGE__;
@@ -76,23 +154,15 @@ __END__
 
 =pod
 
-=head1 USAGE
+=head1 NAME
 
-	edit -lp summary.yaml
-	edit --save summary.yaml > out.txt
-	edit --load summary.yaml < in.txt
+Mail::Summary::Tools::CLI::Edit - Edit a YAML summary using the FlatFile format
 
-=head1 OPTIONS
+=head1 SYNOPSIS
 
-	--verbose                   Not yet implemented.
-	--input=FILE.yml            The file to edit.
-	--posters                   List all the posters in a thread.
-	--dates                     List all the end and start dates of the thread.
-	--links                     Add links to the default archive.
-	--archive=SERVICE           Which archival service to link to. "google" or "gmane".
-	--misc                      List misc data (e.g. RT tickets)
-	--skip                      Skip threads that are already summarized.
-	--hidden                    Don't skip threads that are hidden.
+	# see command line usage
+
+=head1 DESCRIPTION
 
 =cut
 
