@@ -23,9 +23,14 @@ use ok 'Mail::Summary::Tools::Output::TT';
 
 use ok 'Mail::Summary::Tools::Output::HTML';
 
+use ok 'Mail::Summary::Tools::Downloader::NNTP';
+
 use ok 'Mail::Summary::Tools::CLI';
 use ok 'Mail::Summary::Tools::CLI::Context';
+use ok 'Mail::Summary::Tools::CLI::Config';
 use ok 'Mail::Summary::Tools::CLI::Create';
 use ok 'Mail::Summary::Tools::CLI::Edit';
 use ok 'Mail::Summary::Tools::CLI::ToText';
 use ok 'Mail::Summary::Tools::CLI::ToHTML';
+use ok 'Mail::Summary::Tools::CLI::Download';
+use ok 'Mail::Summary::Tools::CLI::Download::nntp';
