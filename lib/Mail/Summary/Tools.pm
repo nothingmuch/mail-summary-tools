@@ -36,7 +36,7 @@ Mail::Summary::Tools - Tools for mailing list summarization.
 =head1 DESCRIPTION
 
 This distribution contains numerous classes useful for creating summaries, and
-an L<App::CLI> based frontend to those classes.
+an L<App::Cmd> based frontend to those classes.
 
 The main usage is illustrated in the L</SYNOPSIS> section.
 
@@ -191,7 +191,7 @@ The various output formats, like plain text, HTML.
 
 =head2 L<Mail::Summary::Tools::CLI>
 
-The L<App::CLI> based components
+The L<App::Cmd> based components
 
 =head2 L<Mail::Summary::Tools::ArchiveLink>
 
@@ -232,7 +232,7 @@ lists.
 
 =head1 SEE ALSO
 
-L<Mail::Box>, L<App::CLI>, L<Template>, L<Proc::InvokeEditor>, L<YAML>, L<YAML::Syck>.
+L<Mail::Box>, L<App::Cmd>, L<Template>, L<Proc::InvokeEditor>, L<YAML>, L<YAML::Syck>.
 
 =head1 AUTHORS
 
