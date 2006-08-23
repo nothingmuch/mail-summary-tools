@@ -61,7 +61,10 @@ sub load {
 	$options{$_} ||= {} for qw/summary list thread/;
 
 	local $YAML::Syck::ImplicitUnicode = 1;
-	my $hash = ref($thing) ? $thing : YAML::Syck::LoadFile($thing);
+	my $hash = ref($thing) ? $thing : do {
+		die "Can't load YAML summary '$thing': no such file or directory\n" unless -e $thing;
+		YAML::Syck::LoadFile($thing);
+	};
 
 	$hash->{lists} = [ map { Mail::Summary::Tools::Summary::List->load( $_, %options ) } @{ $hash->{lists} } ];
 
