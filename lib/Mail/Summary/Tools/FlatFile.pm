@@ -63,6 +63,13 @@ has extra_fields => (
 	default => sub { [] },
 );
 
+has patterns => (
+	isa => "ArrayRef",
+	is  => "rw",
+	auto_deref => 1,
+	default => sub { [] },
+);
+
 sub save {
 	my ( $self, $file ) = @_;
 
@@ -80,12 +87,11 @@ sub load {
 
 	$text = File::Slurp::read_file($text) unless $text =~ qr/---/;
 
-	# filter out comments
-	$text =~ s/^#.*$//mg;
-
-	foreach my $thread ( grep { length($_) } split /\s*\n---\n\s*/, $text ) {
+	foreach my $thread ( grep { length($_) } split /\s*\n---\n\s*/s, $text ) {
 		$self->load_thread( $thread );
 	}	
+
+	return 1;
 }
 
 sub load_thread {
@@ -93,12 +99,17 @@ sub load_thread {
 
 	my ( $head, $junk, $summary_text ) = split /\n\n\s*/, $text, 3;
 
+	# filter out comments
+	($_||='') =~ s/^#.*$//mg for $head, $junk, $summary_text;
+	return unless $head =~ /\S/;
+
 	local $YAML::Syck::ImplicitTyping = 1;
 	my $meta_data = eval { YAML::Syck::Load($head) };
-	die "Error parsing YAML: $@\n$head\n" if $@;
+	die "Error parsing YAML header: $@\n$head\n" if $@;
 
 	my ( $id, $list ) = delete @{ $meta_data }{qw/message_id list/};
-	$meta_data->{summary} = $summary_text;
+
+	die "No message id in header:\n$head\n" unless $id;
 
 	# FIXME - autovivify?.
 	my $thread = $self->summary->get_thread_by_id($id)
@@ -120,6 +131,8 @@ sub load_thread {
 	} else {
 		delete $thread->extra->{out_of_date};
 	}
+	
+	$meta_data->{summary} = $summary_text;
 
 	foreach my $field ( keys %$meta_data ) {
 		if ( $thread->can($field) ) {
@@ -142,7 +155,7 @@ sub set_list {
 
 sub emit_summary {
 	my ( $self, $summary ) = @_;
-	return <<'PRE' . join("\n", map { $self->emit_list($_) } $summary->lists );
+	return join("", map { "$_\n\n---\n" } <<'PRE', map { $self->emit_list($_) } $summary->lists );
 # Threads are separated with the sequence "\n---\n"
 # Every thread is composed of three chunks, separated by "\n\n"
 # The first chunk is YAML meta data. You may edit it. The second
@@ -150,20 +163,15 @@ sub emit_summary {
 # summary which should be written in the Markdown language.
 
 # the -s option skips threads that have already been summarized
-# the -a option forces inclusion of hidden threads
-# the -l option creates links to threads (-a gmane, -a google to set archive)
-# the -p option lists all the posters in the thread
-# the -d option emits the thread's date range
-# the -m option emits misc data, like RT links
-# the --extra_fields option dumps additional fields in the YAML (e.g. --extra_fields=posters)
-
----
+# the -H option forces inclusion of hidden threads
+# the -e option dumps additional fields in the YAML (e.g. -e my_header -e my_other_header )
+# the -P option skips threads not matching the specified patterns (e.g. -P todo -P EvilUser )
 PRE
 }
 
 sub emit_list {
 	my ( $self, $list ) = @_;
-	join("", map { "$_\n\n---\n" } map { $self->emit_thread($_, $list) } $list->threads );
+	map { $self->emit_thread($_, $list) } $list->threads;
 }
 
 sub emit_thread {
@@ -172,11 +180,21 @@ sub emit_thread {
 	return if $self->skip_summarized and $thread->summary and !$thread->extra->{out_of_date};
 	return if $thread->hidden and !$self->include_hidden;
 
-	return join("\n\n",
+	my $formatted = join("\n\n",
 		$self->emit_head($thread, $list),
 		$self->emit_junk($thread, $list),
 		$self->emit_body($thread, $list),
 	);
+
+	if ( my @patterns = $self->patterns ) {
+		foreach my $pattern ( @patterns ) {
+			return $formatted if $formatted =~ $pattern;
+		}
+
+		return;
+	} else {
+		return $formatted;
+	}
 }
 
 sub emit_head {
@@ -194,7 +212,7 @@ sub emit_head {
 		subject => $thread->subject,
 		( $thread->hidden ? ( hidden => $thread->hidden ) : () ),
 		( $thread->extra->{out_of_date} ? ( out_of_date => 1 ) : () ),
-		map { $_ => $thread->can($_) ? $thread->$_ : $thread->extra->{$_} } $self->extra_fields,
+		map { $_ => $thread->can($_) && defined($thread->can($_)) ? $thread->$_ : $thread->extra->{$_} } $self->extra_fields,
 	});
 	chomp($yaml);
 	return $yaml;
