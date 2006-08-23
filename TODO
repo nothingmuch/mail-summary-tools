@@ -24,3 +24,5 @@
 
 * Make YAML::Cache support dir levels, to e.g. split up NNTP article overviews
   by server, then group
+
+* CLI global option --home (defaults to ~/.mailsum)
