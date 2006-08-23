@@ -26,3 +26,9 @@
   by server, then group
 
 * CLI global option --home (defaults to ~/.mailsum)
+
+* document ~/.mailsum/config in Tools.pm
+
+* document NNTP downloader's semantics
+
+* document mailsum itself
