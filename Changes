@@ -4,6 +4,9 @@
 	- some error messages have been improved
 	- edit --hidden shows hidden threads in the flatfile
 	- hidden now allows arbitrary text
+	- Switch to App::Cmd
+	- NNTP dowloader
+	- Various other improvements
 
 0.01
 	- Initial release
