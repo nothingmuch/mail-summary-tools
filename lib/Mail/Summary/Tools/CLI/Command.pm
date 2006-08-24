@@ -26,7 +26,7 @@ sub opt_spec {
 
 sub validate_args {
 	my ( $self, $opt, $args ) = @_;
-	warn $self->usage->text and exit if $opt->{help};
+	print $self->_usage_text and exit if $opt->{help};
 	$self->validate( $opt, $args );
 }
 
