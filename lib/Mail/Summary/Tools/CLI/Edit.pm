@@ -16,22 +16,22 @@ use Proc::InvokeEditor;
 #'END_USE
 
 use constant options => (
-	[ 'verbose|v!'       => 'Output progress information' ],
-	[ 'input|i=s'        => 'The summary file to edit' ],
-	[ 'mode'             => hidden => { default => "interactive", one_of => [
+	[ 'verbose|v!'        => 'Output progress information' ],
+	[ 'input|i=s'         => 'The summary file to edit' ],
+	[ 'mode'              => hidden => { default => "interactive", one_of => [
 		[ 'interactive'      => "Edit the file interactively (the default)" ],
 		[ 'save:s'           => "Output a flatfile to a file or STDOUT" ],
 		[ 'load:s'           => "Load the specified file or STDIN into the summary" ],
 	] } ],
-	[ 'skip|s!'          => 'Skip threads that have already been summarized' ],
-	[ 'hidden|H!'        => 'Include hidden threads' ],
-	[ 'links|l!'         => 'Include links to on-line archives', { default => 1 } ], # TODO shorten
-	[ 'archive|a=s'      => 'The rchive to use (defaults to "google")', { default => "google" } ],
-	[ 'posters|p!'       => 'Include posters names in the comment section', { default => 1 } ],
-	[ 'dates|d!'         => 'Include start and end dates in the comment section', { default => 1 } ],
-	[ 'misc|m!'          => 'Include misc info in the comment section', { default => 1 } ],
-	[ 'extra_field|e=s@' => "Additional fields to include in the YAML header (can be used several times)" ],
-	[ 'pattern|P=s@'     => "Only include summaries matching this regex (matches against formatted text)" ],
+	[ 'skip|s!'           => 'Skip threads that have already been summarized' ],
+	[ 'hidden|H!'         => 'Include hidden threads' ],
+	[ 'links|l!'          => 'Include links to on-line archives', { default => 1 } ], # TODO shorten
+	[ 'archive|a=s'       => 'The rchive to use (defaults to "google")', { default => "google" } ],
+	[ 'posters|p!'        => 'Include posters names in the comment section', { default => 1 } ],
+	[ 'dates|d!'          => 'Include start and end dates in the comment section', { default => 1 } ],
+	[ 'misc|m!'           => 'Include misc info in the comment section', { default => 1 } ],
+	[ 'extra_fields|e=s@' => "Additional fields to include in the YAML header (can be used several times)" ],
+	[ 'pattern|P=s@'      => "Only include summaries matching this regex (matches against formatted text)" ],
 );
 
 sub validate {
@@ -96,7 +96,7 @@ sub create_flatfile {
 		list_dates      => $opt->{dates},
 		list_misc       => $opt->{misc},
 		add_links       => $opt->{links},
-		extra_field     => $opt->{extra_field},
+		extra_fields    => [ map { split ',', $_ } @{ $opt->{extra_fields} } ],
 		patterns        => [ map { qr/$_/ } @{ $opt->{pattern} || [] } ],
 	);
 }

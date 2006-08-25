@@ -206,13 +206,21 @@ sub emit_head {
 	#local $YAML::UseHeader = 0;
 	#require YAML;
 
+	my %extra_fields;
+
+	foreach my $field ( $self->extra_fields ) {
+		if ( defined( my $value = ($thread->can($field) ? $thread->$field : $thread->extra->{$field}) ) ) {
+			$extra_fields{$field} = $value;
+		}
+	}
+
 	my $yaml = YAML::Syck::Dump({
 		list => $list->name,
 		message_id => $thread->message_id,
 		subject => $thread->subject,
 		( $thread->hidden ? ( hidden => $thread->hidden ) : () ),
 		( $thread->extra->{out_of_date} ? ( out_of_date => 1 ) : () ),
-		map { $_ => $thread->can($_) && defined($thread->can($_)) ? $thread->$_ : $thread->extra->{$_} } $self->extra_fields,
+		%extra_fields,
 	});
 	chomp($yaml);
 	return $yaml;
