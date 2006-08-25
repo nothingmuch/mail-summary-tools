@@ -76,11 +76,11 @@ sub load_summary {
 	my $opt = $self->{opt};
 
 	Mail::Summary::Tools::Summary->load(
-        $opt->{input},
-        thread => {
-            default_archive => $opt->{archive},
+		$opt->{input},
+		thread => {
+			default_archive     => $opt->{archive},
 			archive_link_params => { cache => $self->app->context->cache },
-        },
+		},
 	);
 }
 
@@ -120,8 +120,8 @@ sub run_load {
 
 	my $summary = $self->load_summary;
 	my $flat = $self->create_flatfile( $summary );
-	
-	my $in = $opt->{load};
+
+	my $in = $opt->{load}; # aha
 	my $buffer = do { local $/; <$in> };
 
 	$flat->load($buffer);

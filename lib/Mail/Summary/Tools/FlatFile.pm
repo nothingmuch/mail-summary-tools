@@ -89,7 +89,7 @@ sub load {
 
 	foreach my $thread ( grep { length($_) } split /\s*\n---\n\s*/s, $text ) {
 		$self->load_thread( $thread );
-	}	
+	}
 
 	return 1;
 }
@@ -131,7 +131,7 @@ sub load_thread {
 	} else {
 		delete $thread->extra->{out_of_date};
 	}
-	
+
 	$meta_data->{summary} = $summary_text;
 
 	foreach my $field ( keys %$meta_data ) {
@@ -175,7 +175,7 @@ sub emit_list {
 }
 
 sub emit_thread {
-	my ( $self, $thread, $list ) = @_;	
+	my ( $self, $thread, $list ) = @_;
 
 	return if $self->skip_summarized and $thread->summary and !$thread->extra->{out_of_date};
 	return if $thread->hidden and !$self->include_hidden;
