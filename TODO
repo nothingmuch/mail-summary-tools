@@ -22,9 +22,6 @@
 * fix the totext bullet rewrapping by making a Text::Quoted like module for
   parsing bullets (Text::Autoformat is just too insane)
 
-* Make YAML::Cache support dir levels, to e.g. split up NNTP article overviews
-  by server, then group
-
 * CLI global option --home (defaults to ~/.mailsum)
 
 * document ~/.mailsum/config in Tools.pm
@@ -32,3 +29,8 @@
 * document NNTP downloader's semantics
 
 * document mailsum itself
+
+* make NNTP downloader save parsed date headers (datetime objects), and save
+  with Storable (for more compact storage - the YAML file is pretty big), split
+  up per server and then group in dirs.
+`
