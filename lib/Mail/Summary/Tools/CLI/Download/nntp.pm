@@ -62,6 +62,7 @@ sub run {
 	my $nntp = Mail::Summary::Tools::Downloader::NNTP->new(
 		server            => $opt->{server},
 		fetch_recursively => $opt->{recursive},
+		cache             => $self->app->context->nntp_overviews,
 	);
 
 	foreach my $group ( @{ $opt->{group} } ){

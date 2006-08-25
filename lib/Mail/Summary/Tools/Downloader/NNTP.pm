@@ -16,13 +16,7 @@ use DateTime::Format::DateManip;
 has cache => (
 	isa => "Object",
 	is  => "rw",
-	default  => sub {
-		require Mail::Summary::Tools::YAMLCache;
-		require Path::Class;
-		Mail::Summary::Tools::YAMLCache->new(
-			file => Path::Class::file("/Users/nothingmuch/.mailsum/nntp_overviews")
-		), # FIXME
-	},
+	required => 1,
 );
 
 has server => (

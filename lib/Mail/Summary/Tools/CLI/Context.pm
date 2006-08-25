@@ -17,7 +17,10 @@ has cache => (
 	isa => "Object",
 	is  => "rw",
 	lazy => 1,
-	default => sub { $_[0]->create_cache },
+	default => sub {
+		my $self = shift;
+		$self->create_yamlcache($self->cache_storage);
+	},
 );
 
 has cache_storage => (
@@ -25,6 +28,24 @@ has cache_storage => (
 	is  => "rw",
 	lazy => 1,
 	default => sub { $_[0]->homedir->file("cache") },
+);
+
+has nntp_overviews => (
+	isa => "Object",
+	is  => "rw",
+	lazy => 1,
+	default => sub {
+		my $self = shift;
+		warn "loading " . $self->nntp_overview_storage;
+		$self->create_yamlcache($self->nntp_overview_storage);
+	},
+);
+
+has nntp_overview_storage=> (
+	isa => "Path::Class::File",
+	is  => "rw",
+	lazy => 1,
+	default => sub { $_[0]->homedir->file("nntp_overviews") },
 );
 
 sub find_homedir {
@@ -35,11 +56,11 @@ sub find_homedir {
 	);
 }
 
-sub create_cache {
-	my $self = shift;
+sub create_yamlcache {
+	my ( $self, $path ) = @_;
 
 	require Mail::Summary::Tools::YAMLCache;
-	return Mail::Summary::Tools::YAMLCache->new( file => $self->cache_storage );
+	return Mail::Summary::Tools::YAMLCache->new( file => $path );
 }
 
 __PACKAGE__;
