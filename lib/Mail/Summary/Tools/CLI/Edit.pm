@@ -53,6 +53,8 @@ sub validate {
 			open my $in, "<", $file || die "open($file): $!";
 			$opt->{load} = $in;
 		}
+
+		binmode $opt->{load}, ":utf8";
 	}
 	
 	if ( defined($opt->{save}) and $opt->{save} eq "" || $opt->{save} ) {
@@ -62,6 +64,8 @@ sub validate {
 			open my $out, ">", $file || die "open($file): $!";
 			$opt->{save} = $out;
 		}
+
+		binmode $opt->{load}, ":utf8";
 	}
 
 	$self->{opt} = $opt;
