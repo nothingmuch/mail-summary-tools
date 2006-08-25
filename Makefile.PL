@@ -21,6 +21,7 @@ requires 'File::Slurp'                 => '9999.12'; # less warnings
 requires 'File::Temp'                  => 0;
 requires 'FindBin'                     => 0;
 requires 'HTML::Entities'              => 0;
+requires 'List::MoreUtils'             => 0;
 requires 'Mail::Box'                   => 0;
 requires 'Mail::ListDetector'          => 0;
 requires 'Net::NNTP'                   => 0;
