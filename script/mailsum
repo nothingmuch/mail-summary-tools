@@ -7,5 +7,28 @@ use Mail::Summary::Tools::CLI;
 
 Mail::Summary::Tools::CLI->run;
 
+__END__
+
+=pod
+
+=head1 NAME
+
+mailsum - Mail::Summary::Tools command line frontend
+
+=head1 SYNOPSIS
+
+	mailsum commands
+
+	mailsum help <command>
+
+	mailsum create -o summary.yaml foo.mbox bar.mbox
+
+	mailsum edit summary.yaml
+
+	mailsum totext summary.yaml
+
+=head1 CONFIGURATION
+
+TODO
 
 
