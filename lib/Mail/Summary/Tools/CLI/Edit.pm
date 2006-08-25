@@ -65,7 +65,7 @@ sub validate {
 			$opt->{save} = $out;
 		}
 
-		binmode $opt->{load}, ":utf8";
+		binmode $opt->{save}, ":utf8";
 	}
 
 	$self->{opt} = $opt;
