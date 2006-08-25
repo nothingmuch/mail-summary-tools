@@ -85,11 +85,11 @@ __END__
 
 =head1 NAME
 
-Mail::Summary::Tools::CLI::Download::nntp - 
+Mail::Summary::Tools::CLI::Download::nntp - Download threads from an NNTP server.
 
 =head1 SYNOPSIS
 
-	use Mail::Summary::Tools::CLI::Download::nntp;
+	# see usage summary
 
 =head1 DESCRIPTION
 
