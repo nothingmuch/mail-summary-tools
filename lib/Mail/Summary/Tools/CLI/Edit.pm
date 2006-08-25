@@ -20,8 +20,8 @@ use constant options => (
 	[ 'input|i=s'         => 'The summary file to edit' ],
 	[ 'mode'              => hidden => { default => "interactive", one_of => [
 		[ 'interactive'      => "Edit the file interactively (the default)" ],
-		[ 'save:s'           => "Output a flatfile to a file or STDOUT" ],
-		[ 'load:s'           => "Load the specified file or STDIN into the summary" ],
+		[ 'save'             => "Output a flatfile to a file or STDOUT" ],
+		[ 'load'             => "Load the specified file or STDIN into the summary" ],
 	] } ],
 	[ 'skip|s!'           => 'Skip threads that have already been summarized' ],
 	[ 'hidden|H!'         => 'Include hidden threads' ],
@@ -48,7 +48,7 @@ sub validate {
 
 	if ( defined($opt->{load}) and $opt->{load} eq "" || $opt->{load} ) {
 		$self->usage_error("You can choose one and only one of --interactive, --load or --save.") if $opt->{interactive};
-		$opt->{load} ||= \*STDIN;
+		$opt->{load} = \*STDIN;
 		unless ( ref( my $file = $opt->{load} ) ) {
 			open my $in, "<", $file || die "open($file): $!";
 			$opt->{load} = $in;
@@ -59,7 +59,7 @@ sub validate {
 	
 	if ( defined($opt->{save}) and $opt->{save} eq "" || $opt->{save} ) {
 		$self->usage_error("You can choose one and only one of --interactive, --load or --save.") if $opt->{load};
-		$opt->{save} ||= \*STDOUT;
+		$opt->{save} = \*STDOUT;
 		unless ( ref( my $file = $opt->{save} ) ) {
 			open my $out, ">", $file || die "open($file): $!";
 			$opt->{save} = $out;
