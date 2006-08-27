@@ -1,3 +1,12 @@
+0.04
+	- Fix the ToHTML command, which was accidentally broken in 0.03's App::Cmd
+	  refactoring
+	- use HTML::Element in Output::HTML, for more flexibility and correctness.
+	- add several options for HTML output to ToHTML: --body_only, --compact,
+	  --xml, --noxhtml
+	- when loading from flatfile with --extra_fields and the field isn't set
+	  clear it from the thread.
+
 0.03
 	- Fix UTF8 handling of edit --save/--load
 	- nntp article overviews are now saved in the correct place (and not my
