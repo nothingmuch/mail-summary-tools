@@ -19,12 +19,14 @@ use constant options => (
 	[ 'input|i=s'       => 'The summary YAML file to emit' ],
 	[ 'output|o=s'      => 'A file to output to (defaults to STDOUT)' ],
 	[ 'archive|a=s'     => 'On-line archive to use', { default => "google" } ],
-	[ 'compact|c'       => 'Emit compact HTML (no <div> tags, etc)' ],
-	[ 'body_only|b'     => 'Emit body fragment only (as opposed to a full, valid document)' ],
-	[ 'xml|x'           => "use HTML::Element's as_XML method instead of as_HTML" ],
+	[ 'compact|c!'      => 'Emit compact HTML (no <div> tags, etc)' ],
+	[ 'body_only|b!'    => 'Emit body fragment only (as opposed to a full, valid document)' ],
+	[ 'xml|x!'          => "use HTML::Element's as_XML method instead of the indented as_HTML" ],
+	[ 'xhtml!'          => "hackishly use startag_XML in as_HTML mode to emit valid xhtml (defaults to true)", { default => 1 }],
 	[ 'h1=s@'           => 'Tags to use instead of h1 (e.g. --h1 p,b emits <p><b>heading</b></p>)', { default => ["h1"] } ],
 	[ 'h2=s@'           => 'see h1', { default => ["h2"] } ],
 	[ 'h3=s@'           => 'see h1', { default => ["h3"] } ],
+	[ 'lang=s'          => 'sets the lang or xml:lang attribute of the <html> element', { default => "en" } ],
 );
 
 sub output {
@@ -74,12 +76,48 @@ sub run {
 		summary    => $summary,
 		body_only  => $opt->{body_only},
 		strip_divs => $opt->{compact},
+		lang       => $opt->{lang},
 		map { $_ . "_tag" => $opt->{$_} } qw/h1 h2 h3/,
 	);
 
 	my @tree = $o->process;
 
-	$self->print_tree(@tree);
+	$self->print_tree($self->doctype, @tree);
+}
+
+sub pi_xhtml {
+	HTML::Element->new('~literal' => text => '<?xml version="1.0" encoding="UTF-8"?>');
+}
+
+sub pi_xml {
+	HTML::Element->new('~pi' => text => 'xml version="1.0" encoding="UTF-8"');
+}
+
+sub doctype_xhtml_11 {
+	HTML::Element->new('~declaration' => text =>
+		'DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"' . "\n" .
+		' "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd"'
+	);
+}
+
+sub doctype_html_401 {
+	HTML::Element->new('~declaration' => text =>
+		'DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"' . "\n" .
+		' "http://www.w3.org/TR/html4/loose.dtd"'
+	);
+}
+
+sub doctype {
+	my $self = shift;
+	return if $self->{opt}{body_only};
+
+	if ( $self->{opt}{xml} ) {
+		return ( $self->pi_xml, $self->doctype_xhtml_11 );
+	} elsif ( $self->{opt}{xhtml} ) {
+		return ( $self->pi_xhtml, $self->doctype_xhtml_11 );
+	} else {
+		return ( $self->doctype_html_401 );
+	}
 }
 
 sub print_tree {
@@ -100,7 +138,17 @@ sub tree_to_text {
 			my ( $elem, $p ) = @_;
 			my $empty = $elem->_empty_element_map->{$elem->tag};
 			$elem->starttag_XML($p, $empty ? 1 : () );
-		};
+		} if $self->{opt}{xhtml};
+
+		# FIXME should this be moved down to Output::HTML?
+		unless ( $self->{opt}{xhtml} ) {
+			foreach my $subtree ( @tree ) {
+				if ( $subtree->tag eq "html" ) {
+					$subtree->attr( xmlns => undef );
+					$subtree->attr( lang => $subtree->attr( 'xml:lang' => undef ) );
+				}
+			}
+		}
 
 		# no optional end tags, two space indent, default entity escaping
 		return join("", map { $_->as_HTML(undef, '  ', {}) } @tree);

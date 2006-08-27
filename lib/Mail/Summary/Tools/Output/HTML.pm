@@ -21,6 +21,12 @@ has strip_divs => (
 	default => 0,
 );
 
+has lang => (
+	isa => "Str",
+	is  => "rw",
+	default => "en",
+);
+
 has summary => (
 	isa => "Mail::Summary::Tools::Summary",
 	is  => "rw",
@@ -58,12 +64,8 @@ sub process {
 sub document_structure {
 	my $self = shift;
 
-
 	return (
-		['~literal' => { text => '<?xml version="1.0" encoding="UTF-8" ?>' }],
-		['~declaration' => { text => 'DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"' . "\n" .
-			' "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd"' }],
-		[html => { xmlns => "http://www.w3.org/1999/xhtml", 'xml:lang' => "en" },
+		[html => { xmlns => "http://www.w3.org/1999/xhtml", 'xml:lang' => $self->lang },
 			[head =>
 				[title => $self->summary->title ],
 				[meta => { 'http-equiv' => "Content-Type", content => "text/html; charset=utf-8" }],
