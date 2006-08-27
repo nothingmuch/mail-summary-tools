@@ -77,9 +77,34 @@ sub run {
 		map { $_ . "_tag" => $opt->{$_} } qw/h1 h2 h3/,
 	);
 
-	my $out = $self->template_output;
-	binmode $out, ':utf8';
-	print $out $o->process;
+	my @tree = $o->process;
+
+	$self->print_tree(@tree);
+}
+
+sub print_tree {
+	my ( $self, @tree ) = @_;
+	my $out = $self->output;
+	print $out $self->tree_to_text(@tree);
+}
+
+sub tree_to_text {
+	my ( $self, @tree ) = @_;
+
+	if ( $self->{opt}{xml} ) {
+		return join("", map { $_->as_XML } @tree);
+	} else {
+		# emit valid XHTML
+		no warnings 'redefine';
+		local *HTML::Element::starttag = sub {
+			my ( $elem, $p ) = @_;
+			my $empty = $elem->_empty_element_map->{$elem->tag};
+			$elem->starttag_XML($p, $empty ? 1 : () );
+		};
+
+		# no optional end tags, two space indent, default entity escaping
+		return join("", map { $_->as_HTML(undef, '  ', {}) } @tree);
+	}
 }
 
 __PACKAGE__;
