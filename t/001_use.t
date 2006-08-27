@@ -15,7 +15,6 @@ use ok 'Mail::Summary::Tools::Summary';
 use ok 'Mail::Summary::Tools::Summary::List';
 use ok 'Mail::Summary::Tools::Summary::Thread';
 
-use ok 'Mail::Summary::Tools::ThreadLoader';
 use ok 'Mail::Summary::Tools::ThreadFilter';
 use ok 'Mail::Summary::Tools::ThreadFilter::Util';
 
