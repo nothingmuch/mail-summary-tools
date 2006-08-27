@@ -16,26 +16,28 @@ use Mail::Summary::Tools::Output::HTML;
 
 use constant options => (
 	[ 'verbose|v!'      => "Output verbose information" ],
-    [ 'input|i=s'       => 'The summary YAML file to emit' ],
-    [ 'output|o=s'      => 'A file to output to (defaults to STDOUT)' ],
-    [ 'archive|a=s'     => 'On-line archive to use', { default => "google" } ],
-	#[ 'compact|c'       => 'Emit compact HTML (no <div> tags, etc)' ],
-	#[ 'body|b'          => 'Emit body fragment only (as opposed to a full, valid document)' ],
+	[ 'input|i=s'       => 'The summary YAML file to emit' ],
+	[ 'output|o=s'      => 'A file to output to (defaults to STDOUT)' ],
+	[ 'archive|a=s'     => 'On-line archive to use', { default => "google" } ],
+	[ 'compact|c'       => 'Emit compact HTML (no <div> tags, etc)' ],
+	[ 'body_only|b'     => 'Emit body fragment only (as opposed to a full, valid document)' ],
+	[ 'xml|x'           => "use HTML::Element's as_XML method instead of as_HTML" ],
 	[ 'h1=s@'           => 'Tags to use instead of h1 (e.g. --h1 p,b emits <p><b>heading</b></p>)', { default => ["h1"] } ],
 	[ 'h2=s@'           => 'see h1', { default => ["h2"] } ],
 	[ 'h3=s@'           => 'see h1', { default => ["h3"] } ],
 );
 
-sub template_output {
-    my $self = shift;
+sub output {
+	my $self = shift;
 	my $opt = $self->{opt};
-    
-    if ( !$opt->{output} or $opt->{output} eq '-' ) {
-        return \*STDOUT;
-    } elsif ( my $file = $opt->{output} ) {
-        open my $fh, ">", $file or die "Couldn't open output (open($file): $!)\n";
-        return $fh;
-    }
+
+	if ( !$opt->{output} or $opt->{output} eq '-' ) {
+		binmode STDOUT, ":utf8";
+		return \*STDOUT;
+	} elsif ( my $file = $opt->{output} ) {
+		open my $fh, ">:utf8", $file or die "Couldn't open output (open($file): $!)\n";
+		return $fh;
+	}
 }
 
 sub validate {
@@ -60,16 +62,18 @@ sub validate {
 sub run {
 	my ( $self, $opt, $args ) = @_;
 
-    my $summary = Mail::Summary::Tools::Summary->load(
-        $opt->{input},
-        thread => {
-            default_archive => $opt->{archive} || "google",
+	my $summary = Mail::Summary::Tools::Summary->load(
+		$opt->{input},
+		thread => {
+			default_archive => $opt->{archive} || "google",
 			archive_link_params => { cache => $self->app->context->cache },
-        },
-    );
+		},
+	);
 
 	my $o = Mail::Summary::Tools::Output::HTML->new(
-		summary => $summary,
+		summary    => $summary,
+		body_only  => $opt->{body_only},
+		strip_divs => $opt->{compact},
 		map { $_ . "_tag" => $opt->{$_} } qw/h1 h2 h3/,
 	);
 
