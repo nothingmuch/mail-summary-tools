@@ -142,6 +142,16 @@ sub load_thread {
 		}
 	}
 
+	foreach my $field ( $self->extra_fields ) {
+		next if exists $meta_data->{$field};
+
+		if ( $thread->can($field) ) {
+			$thread->$field( undef );
+		} else {
+			delete $thread->extra->{$field};
+		}
+	}
+
 	$self->set_list( $list, $thread );
 }
 

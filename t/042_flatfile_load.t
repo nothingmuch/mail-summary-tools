@@ -37,13 +37,19 @@ my $summary = Mail::Summary::Tools::Summary->new(
 					subject => "Moose nuts",
 					default_archive => "gmane",
 					summary => "third_orig",
+					extra => {
+						moose => "blah",
+					},
 				),
 			],
 		),
 	],
 );
 
-my $flat = Mail::Summary::Tools::FlatFile->new( summary => $summary );
+my $flat = Mail::Summary::Tools::FlatFile->new(
+	summary      => $summary,
+	extra_fields => [qw/moose/],
+);
 
 my $text = do { local $/; <DATA> };
 
@@ -58,16 +64,22 @@ new paragraph
 double space},
 "thread 1 summary" );
 
+is( $droppings->extra->{moose}, "bah",  "droppings has the moose field set" );
+is( $droppings->extra->{oink},  "zonk", "droppings has the oink field set" );
+
 is( $drool->summary, "Foo", "thread 2 summary" );
 
 is( $nuts->summary, "third", "thread 3 summary" );
 
 is( $nuts->subject, "Moose <censored>", "subject changed" );
+is_deeply( $nuts->extra, {}, "no extra fields for nuts" );
 
 isa_ok( $nuts->archive_link, "Mail::Summary::Tools::ArchiveLink::Hardcoded" );
 
 __DATA__
 message_id: unique1@example.com
+moose: bah
+oink: zonk
 
 4Q#$!%!% garbaagae1
 432oiu3hkjahtr
