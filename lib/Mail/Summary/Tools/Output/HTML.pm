@@ -79,11 +79,12 @@ sub markdown {
 	$text =~ s/<((?:msgid|rt):\S+?)>/$self->expand_uri($1)/ge;
 	$text =~ s/\[(.*?)\]\(((?:msgid|rt):\S+?)\)/$self->expand_uri($2, $1)/ge;
 
-	# non ascii stuff gets escaped (accents, etc), but not punctuation, which
-	# markdown will handle for us.
-	$text = $self->escape_html($text, '^\p{IsASCII}');
+	my $html = Text::Markdown::markdown( $text );
 
-	Text::Markdown::markdown( $text );
+
+	# non ascii stuff gets escaped (accents, etc), but not punctuation, which
+	# markdown will handle for us
+	return $self->escape_html($html, '^\p{IsASCII}');
 }
 
 sub rt_uri {
