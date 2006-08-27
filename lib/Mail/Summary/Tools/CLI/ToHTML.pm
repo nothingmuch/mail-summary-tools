@@ -64,7 +64,7 @@ sub run {
         $opt->{input},
         thread => {
             default_archive => $opt->{archive} || "google",
-			archive_link_params => { cache => $opt->{context}->cache },
+			archive_link_params => { cache => $self->app->context->cache },
         },
     );
 
