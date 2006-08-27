@@ -3,9 +3,11 @@
 package Mail::Summary::Tools::Output::HTML;
 use Moose;
 
-use Mail::Summary::Tools::Output::TT;
+use Template;
 use Text::Markdown ();
 use HTML::Entities;
+
+use utf8;
 
 has summary => (
 	isa => "Mail::Summary::Tools::Summary",
