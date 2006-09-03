@@ -328,10 +328,18 @@ sub custom_footer_section {
 sub generic_custom_section {
 	my ( $self, $section ) = @_;
 
-	return (
-		$self->h2( $section->{title} ),
-		$self->markdown( $section->{body} ),
-	);
+	my $title = $section->{title} || return;
+
+	my $heading = $self->h2( $title );
+
+	if ( my $body = $section->{body} ) {
+		return (
+			$heading,
+			$self->markdown( $section->{body} ),
+		);
+	} else {
+		return $heading;
+	}
 }
 
 sub see_also {
