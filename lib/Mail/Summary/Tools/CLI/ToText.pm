@@ -147,9 +147,9 @@ sub really_shorten {
 		}
 
 		no strict 'refs';
-		my $short = &{"${mod}::makeashorterlink"}( $uri ) || "$uri";
-		$cache->set( $cache_key, $short );
-		return $short;
+		my $short = &{"${mod}::makeashorterlink"}( $uri );
+		$cache->set( $cache_key, $short ) if $short;
+		return $short || "$uri";
 	}
 }
 
