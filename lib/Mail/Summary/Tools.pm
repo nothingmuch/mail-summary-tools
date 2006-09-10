@@ -2,7 +2,7 @@
 
 package Mail::Summary::Tools;
 
-our $VERSION = "0.04";
+our $VERSION = "0.05";
 
 __PACKAGE__;
 
