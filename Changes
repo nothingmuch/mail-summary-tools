@@ -1,3 +1,7 @@
+0.05
+	- Formatting fixes for text output (link expansion, empty sections)
+	- Unsuccessful URI shortening is no longer cached
+
 0.04
 	- Fix the ToHTML command, which was accidentally broken in 0.03's App::Cmd
 	  refactoring
