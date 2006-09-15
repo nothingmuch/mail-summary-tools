@@ -282,7 +282,7 @@ __DATA__
 [% wrap(section.body) %]
 [% END %]
 [% END %][% IF summary.extra.see_also %][% heading("See Also") %]
-[% FOREACH item IN summary.extra.see_also %]
-[% link = BLOCK %][% item.name %] <[% shorten(item.uri ) %]>[% END %][% bullet(link) %]
+
+[% FOREACH item IN summary.extra.see_also %][% link = BLOCK %][% item.name %] <[% shorten(item.uri ) %]>[% END %][% bullet(link) %]
 [% END %]
 [% END %]
