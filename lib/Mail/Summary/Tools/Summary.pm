@@ -77,17 +77,23 @@ sub save {
 	local $YAML::Syck::ImplicitUnicode = 1;
 
 	# YAML.pm's output is prettier
-	my ( $dump, $dumpfile ) = eval { require YAML; ( \&YAML::Dump, \&YAML::DumpFile ) };
-	$dump     ||= \&YAML::Syck::Dump;
-	$dumpfile ||= \&YAML::Syck::DumpFile;
+	my $dump  = eval { require YAML; \&YAML::Dump } || \&YAML::Syck::Dump;
+	my $yaml = $dump->( $self->to_hash );
 
 	if ( @args ) {
 		my $file = shift @args;
+
+		# keep a backup
 		unlink "$file~";
 		rename $file, "$file~";
-		return $dumpfile->( $file, $self->to_hash );
+
+		# YAML doesn't set the handle to :utf8, so we're doing the heavy lifting on our own
+		open my $fh, ">:utf8", $file or die "open('$file'): $!";
+		print $fh $yaml;
+		close $fh or die "close('$file'): $!";
+		return 1;
 	} else {
-		return $dump->( $self->to_hash );
+		return $yaml;
 	}
 }
 
