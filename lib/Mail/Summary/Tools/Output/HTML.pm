@@ -212,7 +212,7 @@ has h1_tag => (
 	isa => "ArrayRef",
 	is  => "rw",
 	auto_deref => 1,
-	default => ["h1"],
+	default => sub { ["h1"] },
 );
 
 sub wrap_tags {
@@ -236,7 +236,7 @@ has h2_tag => (
 	isa => "ArrayRef",
 	is  => "rw",
 	auto_deref => 1,
-	default => ["h2"],
+	default => sub { ["h2"] },
 );
 
 sub h2 {
@@ -249,7 +249,7 @@ has h3_tag => (
 	isa => "ArrayRef",
 	is  => "rw",
 	auto_deref => 1,
-	default => ["h3"],
+	default => sub { ["h3"] },
 );
 
 sub h3 {
