@@ -45,7 +45,7 @@ sub validate {
 		$mbox = $mgr->open(
 			folder => $mbox,
 			create => 0,
-			access => "ro",
+			access => "r",
 		)
 	};
 
