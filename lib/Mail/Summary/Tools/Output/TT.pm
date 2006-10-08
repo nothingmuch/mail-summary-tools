@@ -21,7 +21,7 @@ has template_obj => (
 has template_output => (
 	isa => "Any",
 	is  => "rw",
-	default => \*STDOUT,
+	default => sub { \*STDOUT },
 );
 
 has template_input => (
