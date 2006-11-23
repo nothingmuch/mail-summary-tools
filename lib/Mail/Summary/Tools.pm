@@ -237,8 +237,8 @@ L<Mail::Box>, L<App::Cmd>, L<Template>, L<Proc::InvokeEditor>, L<YAML>, L<YAML::
 =head1 VERSION CONTROL
 
 This module is maintained using Darcs. You can get the latest version from
-L<http://nothingmuch.woobling.org/Mail-Summary-Tools/>, and use `darcs send` to
-commit changes.
+L<http://nothingmuch.woobling.org/Mail-Summary-Tools/>, and use C<darcs send>
+to commit changes.
 
 =head1 AUTHORS
 
