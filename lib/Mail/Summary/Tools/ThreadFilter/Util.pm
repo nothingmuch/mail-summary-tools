@@ -140,7 +140,7 @@ sub in_date_range ($$) {
 		$date ||= eval { DateTime::Format::DateManip->parse_datetime( $date_header ) };
 		push @errors, $@ if $@;
 
-        die "Error prasing date '$date_header': @errors" unless defined $date;
+        die "Error parsing date '$date_header': @errors" unless defined $date;
 
 		return $range->includes( $date );
 	}
