@@ -63,3 +63,5 @@ sub _load_config {
 		return {};
 	}
 }
+
+1;
