@@ -52,8 +52,7 @@ has _downloaded => (
 
 sub connect {
 	my $self = shift;
-	my $nntp = Net::NNTP->new( $self->server, Debug => 1 );
-	$nntp;
+	Net::NNTP->new( $self->server, Debug => 1 ) || die "couldn't connect to " . $self->server;
 }
 
 sub overviews_for_group {
